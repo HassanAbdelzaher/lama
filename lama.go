@@ -98,6 +98,14 @@ func (l *Lama) Get(dest interface{}) error {
 	er := nQ(l).Get(dest)
 	return er
 }
+func (l *Lama) First(dest interface{}) error {
+	er := nQ(l).First(dest)
+	return er
+}
+func (l *Lama) Last(dest interface{}) error {
+	er := nQ(l).Last(dest)
+	return er
+}
 func (l *Lama) Save(entity interface{}) error {
 	er := nQ(l).Save(entity)
 

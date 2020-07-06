@@ -29,13 +29,13 @@ func main() {
 
 func do(id string) {
 	log.Println("start " + id)
-	/*db, err := conn.Begin()
+	db, err := conn.Begin()
 	defer db.Rollback()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	noe := time.Now()*/
-	/*for i := 0; i < 10; i++ {
+	noe := time.Now()
+	for i := 0; i < 10; i++ {
 		s := "lama"
 		t := Test{}
 		t.Ix = int32(i) + int32(200)
@@ -49,8 +49,7 @@ func do(id string) {
 			break
 		}
 	}
-	db.Commit()*/
-	var err error
+	db.Commit()
 	var cnt int
 	//err = conn.Model(Test{}).Count("*").Get(&cnt)
 	if err != nil {
@@ -60,20 +59,14 @@ func do(id string) {
 	}
 	log.Println("did:" + id)
 	t2 := Test{}
-	err = conn.Where("id=:id", sql.NamedArg{Name: `id`, Value: 100}).Get(&t2)
+	err = conn.Where("id>:id", sql.NamedArg{Name: `id`, Value: 100}).Last(&t2)
 	if err != nil {
 		log.Println(err)
 	}
 	log.Println(t2)
-	hasn := "hassan"
-	t2.Name = &hasn
+	addr := "shrook"
+	t2.Address = &addr
 	err = conn.Save(&t2)
-	if err != nil {
-		log.Println(err)
-	}
-	up := make(map[string]interface{})
-	up["name"] = "omar"
-	err = conn.Where("id=:id", sql.NamedArg{Name: "id", Value: 100}).Model(Test{}).Update(up, false)
 	if err != nil {
 		log.Println(err)
 	}

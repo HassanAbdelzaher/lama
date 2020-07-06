@@ -372,6 +372,61 @@ func (q *Query) Get(dest interface{}) (err error) {
 	return err
 }
 
+func (q *Query) First(dest interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	if len(q.orderBy) == 0 {
+		keys, err := primaryKey(dest)
+		if err != nil {
+			return err
+		}
+		for k, _ := range keys {
+			q.orderBy = append(q.orderBy, k)
+		}
+	}
+
+	q.Limit(1)
+	return q.Get(dest)
+}
+
+func (q *Query) Last(dest interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	if len(q.orderBy) == 0 {
+		keys, err := primaryKey(dest)
+		if err != nil {
+			return err
+		}
+		for k, _ := range keys {
+			q.orderBy = append(q.orderBy, k+" desc ")
+		}
+	}
+	q.Limit(1)
+	return q.Get(dest)
+}
+
 //save entity
 func (q *Query) Save(entity interface{}) (err error) {
 	defer func() {
