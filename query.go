@@ -11,27 +11,27 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/jmoiron/sqlx"
-	"mas.com/wsdl/slices"
 )
 
 type ZeroValueType string
 
 type Query struct {
-	from            string
-	args            []sql.NamedArg
-	wheres          []Where
-	values          map[string]interface{}
-	SkipZeroValues  bool
-	orderBy         []string
-	limit           int
-	offset          int
-	groupBy         []string
-	columns         []string
-	ReturningColumn string
-	db              *sqlx.DB
-	model           interface{}
-	errors          []error
-	debug           bool
+	from                   string
+	args                   map[string]interface{}
+	wheres                 []Where
+	values                 map[string]interface{}
+	SkipZeroValues         bool
+	orderBy                []string
+	limit                  int
+	offset                 int
+	groupBy                []string
+	columns                []string
+	ReturningColumn        string
+	tx                     *sqlx.Tx
+	model                  interface{}
+	errors                 []error
+	debug                  bool
+	havePrivateTransaction bool
 }
 
 func (q *Query) Debug(dbg bool) *Query {
@@ -51,15 +51,13 @@ func (q *Query) getFrom() string {
 	return ""
 }
 
-func (q *Query) iArgs() []interface{} {
-	iar := make([]interface{}, 0)
+func (q *Query) iArgs() map[string]interface{} {
+	iar := make(map[string]interface{})
 	if q.args == nil {
 		return iar
 	}
-	for _, ar := range q.args {
-		iar = append(iar, ar)
-	}
-	return iar
+
+	return q.args
 }
 
 func (q *Query) addError(err error) {
@@ -91,31 +89,20 @@ func (q *Query) _where(w Where) *Query {
 	return q
 }
 
-func (q *Query) _values(values map[string]interface{}) *Query {
-	q.values = values
-	return q
-}
-
-func (q *Query) _StructValues(stct interface{}) *Query {
-	mp, err := StructToMap(stct, false)
-	if err != nil {
-		q.addError(err)
-		return q
-	}
-	q._values(mp)
-	return q
-}
 func (q *Query) buildWhere() string {
+	if q.args == nil {
+		q.args = make(map[string]interface{})
+	}
 	statment := ""
 	if q.wheres != nil && len(q.wheres) > 0 {
 		for idx, w := range q.wheres {
-			isZero := false
-			if w.Value != nil {
-				isZero = reflect.ValueOf(w.Value).IsZero()
+			/*isZero:=false
+			if w.Value!=nil{
+				isZero=reflect.ValueOf(w.Value).IsZero()
 			}
 			if isZero && q.SkipZeroValues {
 				continue
-			}
+			}*/
 			if idx == 0 {
 				statment = statment + " where  "
 			} else {
@@ -123,38 +110,48 @@ func (q *Query) buildWhere() string {
 			}
 			whs, args := w.Build()
 			statment = statment + whs + " "
-			q.args = append(q.args, args...)
+			for a, b := range args {
+				q.args[a] = b
+			}
+			log.Println(q.args)
+			//q.args = append(q.args, args...)
 		}
 	}
 	return statment
 }
-func (q *Query) Values(values interface{}, skipZeroValues bool) *Query {
-	if values == nil {
+
+func (q *Query) setValues(val interface{}) *Query {
+	if val == nil {
 		return q
 	}
-	if reflect.TypeOf(values).Kind() == reflect.Map {
-		mValues, ok := values.(map[string]interface{})
+	if q.values == nil {
+		q.values = make(map[string]interface{})
+	}
+	if reflect.TypeOf(val).Kind() == reflect.Map {
+		mValues, ok := val.(map[string]interface{})
 		if !ok {
 			q.addError(errors.New("map must be map[string]interface"))
 			return q
 		}
-		return q._values(mValues)
+		appendToMap(q.values, mValues)
+		return q
 	}
-	if reflect.TypeOf(values).Kind() == reflect.Struct {
-		values, err := StructToMap(values, skipZeroValues)
+	if reflect.TypeOf(val).Kind() == reflect.Struct {
+		values, err := StructToMap(val, false, true, false)
 		if err != nil {
 			q.addError(err)
 			return q
 		}
-		return q._values(values)
+		appendToMap(q.values, values)
+		return q
 	}
-	if reflect.TypeOf(values).Kind() == reflect.Ptr {
-		val := reflect.ValueOf(values).Elem()
-		if reflect.TypeOf(val).Kind() == reflect.Ptr {
+	if reflect.TypeOf(val).Kind() == reflect.Ptr {
+		strct := reflect.ValueOf(val).Elem().Interface()
+		if reflect.TypeOf(strct).Kind() == reflect.Ptr {
 			q.addError(errors.New("pointer to pointer not supported"))
 			return q
 		}
-		return q.Values(val, skipZeroValues)
+		return q.setValues(strct)
 	}
 	q.addError(errors.New("values must be map or struct"))
 	return q
@@ -208,7 +205,7 @@ func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query
 	} else {
 		mp, isMap := str.(map[string]interface{})
 		if isMap {
-			for k, _ := range mp {
+			for k := range mp {
 				q.columns = append(q.columns, k)
 			}
 		}
@@ -221,12 +218,12 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 	}
 	if structs.IsStruct(str) {
 		nCols := make([]string, 0)
-		fields := slices.Map(structs.Fields(str), func(i interface{}) interface{} {
+		fields := Map(structs.Fields(str), func(i interface{}) interface{} {
 			f := i.(*structs.Field)
 			return f.Tag("db")
 		})
 		for _, col := range q.columns {
-			ok, fCol := slices.ContainsStrI(fields, col, false)
+			ok, fCol := ContainsStrI(fields, col, false)
 			if ok {
 				nCols = append(nCols, fCol)
 			} else {
@@ -246,7 +243,11 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 	}
 	if reflect.TypeOf(query).Kind() == reflect.String {
 		str := reflect.ValueOf(query).String()
-		return q._where(Where{Raw: str, Args: args})
+		mArgs := make(map[string]interface{})
+		for _, b := range args {
+			mArgs[b.Name] = b.Value
+		}
+		return q._where(Where{Raw: str, Args: mArgs})
 	}
 	if reflect.TypeOf(query).Kind() == reflect.Map {
 		values, ok := query.(map[string]interface{})
@@ -257,7 +258,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		return q.whereMap(values)
 	}
 	if reflect.TypeOf(query).Kind() == reflect.Struct {
-		values, err := StructToMap(query, true)
+		values, err := StructToMap(query, true, false, true)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -278,15 +279,15 @@ func (q *Query) WhereIn(key string, values ...interface{}) *Query {
 	if values == nil || len(values) == 0 {
 		return q
 	}
-	args := make([]sql.NamedArg, 0)
+	args := make(map[string]interface{})
 	ins := make([]string, 0)
 	for idx, v := range values {
 		nam := "Arg" + strconv.Itoa(idx) + strconv.Itoa(rand.Int())
-		args = append(args, sql.NamedArg{Name: nam, Value: v})
+		//args = append(args, sql.NamedArg{Name: nam, Value: v})
+		args[nam] = v
 		ins = append(ins, ":"+nam)
 	}
 	stm := " " + key + " in(" + strings.Join(ins, ",") + ")"
-	log.Println("in", stm, args)
 	return q._where(Where{Raw: stm, Args: args})
 }
 func (q *Query) WhereOr(w ...Where) *Query {
@@ -301,8 +302,22 @@ func (q *Query) Table(table string) *Query {
 	q.from = table
 	return q
 }
-func (q *Query) Find(dest interface{}) error {
-	if q.db == nil {
+
+////////////////////////////////////
+////////////////////////////////////////////////
+//actual database queries
+func (q *Query) Find(dest interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
 	//must be set befoure build
@@ -312,38 +327,202 @@ func (q *Query) Find(dest interface{}) error {
 		slq := SelectQuery{Query: *q}
 		stm, args := slq.Build()
 		slice := reflect.ValueOf(dest).Interface()
-		log.Println("slice:", slice, reflect.TypeOf(slice))
-		return q.db.Select(slice, stm, args...)
+		namedArgs := make([]interface{}, 0)
+		for a, b := range args {
+			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
+		}
+		return q.tx.Select(slice, stm, namedArgs...)
 	} else {
 		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
 		q.model = elm
-		log.Println("reflect.TypeOf(elm)", reflect.TypeOf(elm))
 		slice := reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
-		log.Println("slice:", slice, reflect.TypeOf(slice))
 		slq := SelectQuery{Query: *q}
 		stm, args := slq.Build()
-		return q.db.Select(slice, stm, args...)
+		namedArgs := make([]interface{}, 0)
+		for a, b := range args {
+			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
+		}
+		err = q.tx.Select(slice, stm, namedArgs...)
+		return err
 	}
 }
-func (q *Query) Get(dest interface{}) error {
-	if q.db == nil {
+func (q *Query) Get(dest interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
 	//must be set befoure build
 	q.model = dest
 	slq := SelectQuery{Query: *q}
 	stm, args := slq.Build()
-	return q.db.Get(dest, stm, args...)
+	namedArgs := make([]interface{}, 0)
+	for a, b := range args {
+		namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
+	}
+	err = q.tx.Get(dest, stm, namedArgs...)
+	return err
 }
-func (q *Query) Insert(dest interface{}) error {
-	if q.db == nil {
+
+//save entity
+func (q *Query) Save(entity interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
 	//must be set befour build
-	q.model = dest
-	q.Values(dest, true)
-	slq := InsertQuery{Query: *q}
-	stm, _ := slq.Build()
-	_, err := q.db.NamedExec(stm, q.values)
+	if q.model == nil {
+		q.model = entity
+	}
+	keys, err := primaryKey(entity)
+	if err != nil {
+		return err
+	}
+	log.Println("primary", keys)
+	q.setValues(entity)
+	for k, _ := range q.values {
+		for a, _ := range keys {
+			if a == k {
+				delete(q.values, k) //delete primary keys
+			}
+		}
+	}
+	slq := UpdateQuery{Query: *q}
+	slq.Where(keys)
+	if len(keys) == 0 {
+		return errors.New("primary key is missing")
+	}
+	stm, args := slq.Build()
+	nArgs := make(map[string]interface{})
+	for a, b := range args {
+		nArgs[a] = b
+	}
+	r, err := q.tx.NamedExec(stm, args)
+	if err != nil {
+		return err
+	}
+	eff, err := r.RowsAffected()
+	if eff == 0 {
+		err = errors.New("no data updated")
+	}
+	if eff > 1 {
+		err = errors.New("more than one entity operation cancelled ")
+	}
+	log.Println("rows effected:", eff)
 	return err
+}
+
+//save entity
+func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	//must be set befour build
+	q.setValues(data)
+	if len(q.wheres) == 0 && !acceptBulk {
+		return errors.New("bulk update not allowed")
+	}
+	slq := UpdateQuery{Query: *q}
+	stm, args := slq.Build()
+	nArgs := make(map[string]interface{})
+	for a, b := range args {
+		nArgs[a] = b
+	}
+	r, err := q.tx.NamedExec(stm, args)
+	if err != nil {
+		return err
+	}
+	eff, err := r.RowsAffected()
+	log.Println("rows effected:", eff)
+	return err
+}
+
+func (q *Query) Add(entity interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	//must be set befour build
+	if q.model == nil {
+		q.model = entity
+	}
+	q.setValues(entity)
+	slq := InsertQuery{Query: *q}
+	stm, args := slq.Build()
+	nArgs := make(map[string]interface{})
+	for a, b := range args {
+		nArgs[a] = b
+	}
+	r, err := q.tx.NamedExec(stm, args)
+	if err != nil {
+		return err
+	}
+	eff, err := r.RowsAffected()
+	log.Println("rows effected:", eff)
+	return err
+}
+
+func (q *Query) Finalize(commit bool) error {
+	if q.havePrivateTransaction && q.tx != nil {
+		if commit {
+			return q.tx.Commit()
+		} else {
+			return q.tx.Rollback()
+		}
+	}
+	return nil
+}
+
+func (q *Query) FinalizeWith(err error) error {
+	commit := true
+	if err != nil {
+		commit = false
+	}
+	if q.havePrivateTransaction && q.tx != nil {
+		defer func() {
+			q.tx = nil
+		}()
+		if commit {
+			return q.tx.Commit()
+		} else {
+			return q.tx.Rollback()
+		}
+	}
+	return nil
 }

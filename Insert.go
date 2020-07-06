@@ -1,7 +1,6 @@
 package lama
 
 import (
-	"database/sql"
 	"log"
 	"reflect"
 )
@@ -10,8 +9,10 @@ type InsertQuery struct {
 	Query
 }
 
-func (q *InsertQuery) Build() (string, []interface{}) {
-	q.args = make([]sql.NamedArg, 0)
+func (q *InsertQuery) Build() (string, map[string]interface{}) {
+	if q.args == nil {
+		q.args = make(map[string]interface{}, 0)
+	}
 	statment := "insert into "
 	frm := q.getFrom()
 	if frm != "" {
@@ -37,7 +38,7 @@ func (q *InsertQuery) Build() (string, []interface{}) {
 		}
 		icols = icols + " " + k
 		values = values + " :" + k
-		q.args = append(q.args, sql.NamedArg{Name: k, Value: v})
+		q.args[k] = v
 	}
 	if q.ReturningColumn != "" {
 		icols = icols + ") OUTPUT Inserted." + q.ReturningColumn + " "

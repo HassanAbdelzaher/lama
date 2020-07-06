@@ -10,7 +10,7 @@ type SelectQuery struct {
 	Query
 }
 
-func (q *SelectQuery) Build() (string, []interface{}) {
+func (q *SelectQuery) Build() (string, map[string]interface{}) {
 	statment := "select "
 	if q.limit > 0 {
 		statment = statment + " top " + strconv.Itoa(q.limit) + " "

@@ -1,7 +1,6 @@
 package lama
 
 import (
-	"database/sql"
 	"log"
 )
 
@@ -9,8 +8,10 @@ type DeleteQuery struct {
 	Query
 }
 
-func (q *DeleteQuery) Build() (string, []interface{}) {
-	q.args = make([]sql.NamedArg, 0)
+func (q *DeleteQuery) Build() (string, map[string]interface{}) {
+	if q.args == nil {
+		q.args = make(map[string]interface{}, 0)
+	}
 	statment := "delete from "
 	if q.from != "" {
 		statment = statment + q.from + " "
