@@ -180,14 +180,7 @@ func (q *Query) Select(cols ...string) *Query {
 	q.columns = append(q.columns, cols...)
 	return q
 }
-func (q *Query) Count(key string) *Query {
-	if key == "" {
-		key = "*"
-	}
-	q.columns = make([]string, 0)
-	q.columns = append(q.columns, "count("+key+") as COUNT")
-	return q
-}
+
 func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	q.columns = make([]string, 0)
 	if structs.IsStruct(str) {
@@ -424,6 +417,50 @@ func (q *Query) Last(dest interface{}) (err error) {
 		}
 	}
 	q.Limit(1)
+	return q.Get(dest)
+}
+
+func (q *Query) Count(dest interface{}) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	key := "*"
+	if key == "" {
+		key = "*"
+	}
+	q.columns = make([]string, 0)
+	q.columns = append(q.columns, "count("+key+") as COUNT")
+	return q.Get(dest)
+}
+func (q *Query) CountColumn(dest interface{}, key string) (err error) {
+	defer func() {
+		q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if q.tx == nil {
+		return errors.New("no database connection defined")
+	}
+	if key == "" {
+		key = "*"
+	}
+	q.columns = make([]string, 0)
+	q.columns = append(q.columns, "count("+key+") as COUNT")
 	return q.Get(dest)
 }
 

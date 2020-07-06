@@ -68,8 +68,11 @@ func (l *Lama) Offset(off int) *Query {
 func (l *Lama) Select(cols ...string) *Query {
 	return nQ(l).Select(cols...)
 }
-func (l *Lama) Count(key string) *Query {
-	return nQ(l).Count(key)
+func (l *Lama) Count(dest interface{}) error {
+	return nQ(l).Count(dest)
+}
+func (l *Lama) CountColumn(dest interface{}, expr string) error {
+	return nQ(l).CountColumn(dest, expr)
 }
 func (l *Lama) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	return nQ(l).ColumnsFromStructOrMap(str, skipUnTaged)
