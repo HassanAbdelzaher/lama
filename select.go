@@ -19,7 +19,7 @@ func (q *SelectQuery) Build() (string, map[string]interface{}) {
 		q.ColumnsFromStructOrMap(q.model, false)
 	} else {
 		if q.model != nil {
-			q.AdaptColumnNamesToStruct(q.model, true)
+			q.AdaptColumnNamesToStruct(q.model, false)
 		}
 	}
 	if q.columns != nil && len(q.columns) > 0 {
