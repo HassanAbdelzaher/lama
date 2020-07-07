@@ -113,8 +113,6 @@ func (q *Query) buildWhere() string {
 			for a, b := range args {
 				q.args[a] = b
 			}
-			log.Println(q.args)
-			//q.args = append(q.args, args...)
 		}
 	}
 	return statment
@@ -313,6 +311,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	//must be set befoure build
 	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
 		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
@@ -353,6 +354,9 @@ func (q *Query) Get(dest interface{}) (err error) {
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	//must be set befoure build
 	q.model = dest
 	slq := SelectQuery{Query: *q}
@@ -378,6 +382,9 @@ func (q *Query) First(dest interface{}) (err error) {
 	}()
 	if q.tx == nil {
 		return errors.New("no database connection defined")
+	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	if len(q.orderBy) == 0 {
 		keys, err := primaryKey(dest)
@@ -407,6 +414,9 @@ func (q *Query) Last(dest interface{}) (err error) {
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	if len(q.orderBy) == 0 {
 		keys, err := primaryKey(dest)
 		if err != nil {
@@ -434,6 +444,9 @@ func (q *Query) Count(dest interface{}) (err error) {
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	key := "*"
 	if key == "" {
 		key = "*"
@@ -455,6 +468,9 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 	}()
 	if q.tx == nil {
 		return errors.New("no database connection defined")
+	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	if key == "" {
 		key = "*"
@@ -479,6 +495,9 @@ func (q *Query) Save(entity interface{}) (err error) {
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	//must be set befour build
 	if q.model == nil {
 		q.model = entity
@@ -487,7 +506,6 @@ func (q *Query) Save(entity interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Println("primary", keys)
 	q.setValues(entity)
 	for k, _ := range q.values {
 		for a, _ := range keys {
@@ -536,6 +554,9 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	if q.tx == nil {
 		return errors.New("no database connection defined")
 	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
 	//must be set befour build
 	q.setValues(data)
 	if len(q.wheres) == 0 && !acceptBulk {
@@ -569,6 +590,9 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}()
 	if q.tx == nil {
 		return errors.New("no database connection defined")
+	}
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	//must be set befour build
 	if q.model == nil {

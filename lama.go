@@ -2,7 +2,6 @@ package lama
 
 import (
 	"database/sql"
-	"log"
 	"sync"
 	"time"
 
@@ -43,7 +42,6 @@ func nQ(l *Lama) *Query {
 	if l.Tx == nil {
 		tx, err := l.dbConn.Beginx()
 		if err != nil {
-			log.Println(err)
 			query.addError(err)
 		} else {
 			query.havePrivateTransaction = true
