@@ -285,7 +285,7 @@ func (q *Query) WhereOr(w ...Where) *Query {
 	return q._where(Where{Or: w})
 }
 func (q *Query) Model(model interface{}) *Query {
-	q.model = model
+	q.setModel(model)
 	q.from = GetTableName(model)
 	return q
 }
@@ -317,7 +317,7 @@ func (q *Query) Find(dest interface{}) (err error) {
 	//must be set befoure build
 	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
 		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
-		q.model = elm
+		q.setModel(elm)
 		slq := SelectQuery{Query: *q}
 		stm, args := slq.Build()
 		slice := reflect.ValueOf(dest).Interface()
@@ -328,7 +328,7 @@ func (q *Query) Find(dest interface{}) (err error) {
 		return q.tx.Select(slice, stm, namedArgs...)
 	} else {
 		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
-		q.model = elm
+		q.setModel(elm)
 		slice := reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
 		slq := SelectQuery{Query: *q}
 		stm, args := slq.Build()
@@ -358,7 +358,7 @@ func (q *Query) Get(dest interface{}) (err error) {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	//must be set befoure build
-	q.model = dest
+	q.setModel(dest)
 	slq := SelectQuery{Query: *q}
 	stm, args := slq.Build()
 	namedArgs := make([]interface{}, 0)
@@ -500,7 +500,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 	}
 	//must be set befour build
 	if q.model == nil {
-		q.model = entity
+		q.setModel(entity)
 	}
 	keys, err := primaryKey(entity)
 	if err != nil {
@@ -596,7 +596,7 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}
 	//must be set befour build
 	if q.model == nil {
-		q.model = entity
+		q.setModel(entity)
 	}
 	q.setValues(entity)
 	slq := InsertQuery{Query: *q}
@@ -641,4 +641,16 @@ func (q *Query) FinalizeWith(err error) error {
 		}
 	}
 	return nil
+}
+
+func (q *Query) setModel(dest interface{}) {
+	if reflect.TypeOf(dest).Kind() == reflect.Struct {
+		q.model = dest
+	}
+	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
+		elm := reflect.ValueOf(dest).Elem().Interface()
+		if reflect.TypeOf(elm).Kind() == reflect.Struct {
+			q.model = elm
+		}
+	}
 }
