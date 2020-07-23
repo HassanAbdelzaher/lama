@@ -325,7 +325,11 @@ func (q *Query) Find(dest interface{}) (err error) {
 		for a, b := range args {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
-		return q.tx.Select(slice, stm, namedArgs...)
+		err = q.tx.Select(slice, stm, namedArgs...)
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		return err
 	} else {
 		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
 		q.setModel(elm)
@@ -337,6 +341,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
 		err = q.tx.Select(slice, stm, namedArgs...)
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 }
@@ -366,6 +373,9 @@ func (q *Query) Get(dest interface{}) (err error) {
 		namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 	}
 	err = q.tx.Get(dest, stm, namedArgs...)
+	if err == sql.ErrNoRows {
+		return nil
+	}
 	return err
 }
 
