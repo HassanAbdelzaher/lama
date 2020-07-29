@@ -10,9 +10,9 @@ import (
 
 type Lama struct {
 	//query Query
-	dbConn *sqlx.DB
-	Tx     *sqlx.Tx
-	Debug  bool
+	DB    *sqlx.DB
+	Tx    *sqlx.Tx
+	Debug bool
 	sync.Mutex
 }
 
@@ -28,8 +28,8 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
 	return &Lama{
 		//query: Query{db: DbConn},
-		dbConn: DbConn,
-		Debug:  false,
+		DB:    DbConn,
+		Debug: false,
 	}, nil
 }
 
@@ -40,7 +40,7 @@ func nQ(l *Lama) *Query {
 	query.args = make(map[string]interface{})
 	query.values = make(map[string]interface{})
 	if l.Tx == nil {
-		tx, err := l.dbConn.Beginx()
+		tx, err := l.DB.Beginx()
 		if err != nil {
 			query.addError(err)
 		} else {
@@ -125,22 +125,22 @@ func (l *Lama) Update(entity map[string]interface{}, bulkUpdate bool) error {
 }
 
 func (l *Lama) Close() {
-	if l.dbConn != nil {
-		l.dbConn.Close()
+	if l.DB != nil {
+		l.DB.Close()
 	}
 }
 
 func (l *Lama) Begin() (*Lama, error) {
 	l.Lock()
 	defer l.Unlock()
-	tx, err := l.dbConn.Beginx()
+	tx, err := l.DB.Beginx()
 	if err != nil {
 		return l, err
 	}
 	return &Lama{
-		Debug:  l.Debug,
-		dbConn: l.dbConn,
-		Tx:     tx,
+		Debug: l.Debug,
+		DB:    l.DB,
+		Tx:    tx,
 	}, nil
 }
 
