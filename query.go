@@ -330,9 +330,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
 		err = q.tx.Select(slice, stm, namedArgs...)
-		if err == sql.ErrNoRows {
-			return nil
-		}
+		/*if err == sql.ErrNoRows {
+			return nil // it will make dangerous effect
+		}*/
 		return err
 	} else {
 		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
@@ -345,9 +345,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
 		err = q.tx.Select(slice, stm, namedArgs...)
-		if err == sql.ErrNoRows {
-			return nil
-		}
+		/*if err == sql.ErrNoRows {
+			return nil // it will make dangerous effect
+		}*/
 		return err
 	}
 }
@@ -377,9 +377,9 @@ func (q *Query) Get(dest interface{}) (err error) {
 		namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 	}
 	err = q.tx.Get(dest, stm, namedArgs...)
-	if err == sql.ErrNoRows {
-		return nil
-	}
+	/*if err == sql.ErrNoRows {
+		return nil // it will make dangerous effect
+	}*/
 	return err
 }
 
