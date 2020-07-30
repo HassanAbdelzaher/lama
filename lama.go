@@ -36,21 +36,12 @@ func Connect(driver string, connstr string) (*Lama, error) {
 func nQ(l *Lama) *Query {
 	l.Lock()
 	defer l.Unlock()
-	query := Query{debug: l.Debug}
+	query := Query{debug: l.Debug,lama:l}
 	query.args = make(map[string]interface{})
 	query.values = make(map[string]interface{})
-	if l.Tx == nil {
-		tx, err := l.DB.Beginx()
-		if err != nil {
-			query.addError(err)
-		} else {
-			query.havePrivateTransaction = true
-			query.tx = tx
-		}
-	} else {
-		query.tx = l.Tx
-		query.havePrivateTransaction = false
-	}
+	//createing new transaction with new query
+	//make connection leak
+	//so transaction must be create inside the actual function
 	return &query
 }
 
@@ -115,7 +106,6 @@ func (l *Lama) Save(entity interface{}) error {
 
 func (l *Lama) Add(entity interface{}) error {
 	er := nQ(l).Add(entity)
-
 	return er
 }
 
@@ -145,23 +135,29 @@ func (l *Lama) Begin() (*Lama, error) {
 }
 
 func (l *Lama) Commit() error {
-	l.Lock()
-	defer l.Unlock()
-	if l.Tx == nil {
-		return nil
+	if l.Tx!=nil{
+		l.Lock()
+		defer l.Unlock()
+		if l.Tx == nil {
+			return nil
+		}
+		err := l.Tx.Commit()
+		l.Tx = nil
+		return err
 	}
-	err := l.Tx.Commit()
-	l.Tx = nil
-	return err
+	return nil
 }
 
 func (l *Lama) Rollback() error {
-	l.Lock()
-	defer l.Unlock()
-	if l.Tx == nil {
-		return nil
+	if l.Tx!=nil {
+		l.Lock()
+		defer l.Unlock()
+		if l.Tx == nil {
+			return nil
+		}
+		err := l.Tx.Rollback()
+		l.Tx = nil
+		return err
 	}
-	err := l.Tx.Rollback()
-	l.Tx = nil
-	return err
+	return nil;
 }

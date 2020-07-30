@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
-	"github.com/jmoiron/sqlx"
 )
 
 type ZeroValueType string
@@ -27,11 +26,12 @@ type Query struct {
 	groupBy                []string
 	columns                []string
 	ReturningColumn        string
-	tx                     *sqlx.Tx
+	//tx                     *sqlx.Tx
 	model                  interface{}
 	errors                 []error
 	debug                  bool
 	havePrivateTransaction bool
+	lama *Lama
 }
 
 func (q *Query) Debug(dbg bool) *Query {
@@ -125,6 +125,8 @@ func (q *Query) setValues(val interface{}) *Query {
 	if q.values == nil {
 		q.values = make(map[string]interface{})
 	}
+	knd:=reflect.TypeOf(val).Kind()
+	log.Println(knd)
 	if reflect.TypeOf(val).Kind() == reflect.Map {
 		mValues, ok := val.(map[string]interface{})
 		if !ok {
@@ -134,7 +136,7 @@ func (q *Query) setValues(val interface{}) *Query {
 		appendToMap(q.values, mValues)
 		return q
 	}
-	if reflect.TypeOf(val).Kind() == reflect.Struct {
+	if reflect.TypeOf(val).Kind() == reflect.Struct || reflect.TypeOf(val).Kind() == reflect.Ptr {
 		values, err := StructToMap(val, false, true, false)
 		if err != nil {
 			q.addError(err)
@@ -142,14 +144,6 @@ func (q *Query) setValues(val interface{}) *Query {
 		}
 		appendToMap(q.values, values)
 		return q
-	}
-	if reflect.TypeOf(val).Kind() == reflect.Ptr {
-		strct := reflect.ValueOf(val).Elem().Interface()
-		if reflect.TypeOf(strct).Kind() == reflect.Ptr {
-			q.addError(errors.New("pointer to pointer not supported"))
-			return q
-		}
-		return q.setValues(strct)
 	}
 	q.addError(errors.New("values must be map or struct"))
 	return q
@@ -248,7 +242,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		}
 		return q.whereMap(values)
 	}
-	if reflect.TypeOf(query).Kind() == reflect.Struct {
+	if reflect.TypeOf(query).Kind() == reflect.Struct || reflect.TypeOf(query).Kind() == reflect.Ptr {
 		values, err := StructToMap(query, true, false, true)
 		if err != nil {
 			q.addError(err)
@@ -256,14 +250,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		}
 		return q.whereMap(values)
 	}
-	if reflect.TypeOf(query).Kind() == reflect.Ptr {
-		val := reflect.ValueOf(query).Elem()
-		if reflect.TypeOf(val).Kind() == reflect.Ptr {
-			q.addError(errors.New("pointer to pointer not supported"))
-			return q
-		}
-		return q.Where(val, args...)
-	}
+
 	return q
 }
 func (q *Query) WhereIn(key string, values ...interface{}) *Query {
@@ -303,7 +290,6 @@ func (q *Query) Table(table string) *Query {
 ////////////////////////////////////////////////////////////////
 func (q *Query) Find(dest interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -312,13 +298,14 @@ func (q *Query) Find(dest interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	//must be set befoure build
+	//tx,rolOrCommi,err:=q.getTx()
+	if err!=nil {
+		return  err
+	}
 	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
 		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
 		q.setModel(elm)
@@ -329,11 +316,11 @@ func (q *Query) Find(dest interface{}) (err error) {
 		for a, b := range args {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
-		err = q.tx.Select(slice, stm, namedArgs...)
-		/*if err == sql.ErrNoRows {
-			return nil // it will make dangerous effect
-		}*/
-		return err
+		if q.lama.Tx!=nil{
+			return q.lama.Tx.Select(slice, stm, namedArgs...)
+		}else {
+			return q.lama.DB.Select(slice, stm, namedArgs...)
+		}
 	} else {
 		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
 		q.setModel(elm)
@@ -344,16 +331,16 @@ func (q *Query) Find(dest interface{}) (err error) {
 		for a, b := range args {
 			namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 		}
-		err = q.tx.Select(slice, stm, namedArgs...)
-		/*if err == sql.ErrNoRows {
-			return nil // it will make dangerous effect
-		}*/
-		return err
+		if q.lama.Tx!=nil{
+			return q.lama.Tx.Select(slice, stm, namedArgs...)
+		}else {
+			return q.lama.DB.Select(slice, stm, namedArgs...)
+		}
 	}
 }
 func (q *Query) Get(dest interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -362,9 +349,6 @@ func (q *Query) Get(dest interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -376,7 +360,12 @@ func (q *Query) Get(dest interface{}) (err error) {
 	for a, b := range args {
 		namedArgs = append(namedArgs, sql.NamedArg{Name: a, Value: b})
 	}
-	err = q.tx.Get(dest, stm, namedArgs...)
+	if q.lama.Tx!=nil{
+		return q.lama.Tx.Get(dest, stm, namedArgs...)
+	}else {
+		return q.lama.DB.Get(dest, stm, namedArgs...)
+	}
+	//err = q.tx.Get(dest, stm, namedArgs...)
 	/*if err == sql.ErrNoRows {
 		return nil // it will make dangerous effect
 	}*/
@@ -385,7 +374,7 @@ func (q *Query) Get(dest interface{}) (err error) {
 
 func (q *Query) First(dest interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -394,9 +383,6 @@ func (q *Query) First(dest interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -416,7 +402,7 @@ func (q *Query) First(dest interface{}) (err error) {
 
 func (q *Query) Last(dest interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -425,9 +411,6 @@ func (q *Query) Last(dest interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -446,7 +429,7 @@ func (q *Query) Last(dest interface{}) (err error) {
 
 func (q *Query) Count(dest interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -455,9 +438,6 @@ func (q *Query) Count(dest interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -471,7 +451,7 @@ func (q *Query) Count(dest interface{}) (err error) {
 }
 func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -480,9 +460,6 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -497,18 +474,18 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 //save entity
 func (q *Query) Save(entity interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
 			if ok {
 				err = errr
+			} else {
+				if err == nil {
+					err = errors.New(("painc at save"))
+				}
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -538,16 +515,33 @@ func (q *Query) Save(entity interface{}) (err error) {
 	for a, b := range args {
 		nArgs[a] = b
 	}
-	r, err := q.tx.NamedExec(stm, args)
-	if err != nil {
-		return err
+	var eff int64=0
+	if q.lama.Tx!=nil{
+		log.Println("within transaction")
+		r, err:=q.lama.Tx.NamedExec(stm,args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}else {
+		log.Println("within pool")
+		r, err:=q.lama.DB.NamedExec(stm,args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
 	}
-	eff, err := r.RowsAffected()
 	if eff == 0 {
 		err = errors.New("no data updated")
 	}
 	if eff > 1 {
-		err = errors.New("more than one entity operation cancelled ")
+		err = errors.New("more than one entity effected")
 	}
 	log.Println("rows effected:", eff)
 	return err
@@ -556,7 +550,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 //save entity
 func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -565,9 +559,7 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
+
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -582,18 +574,30 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	for a, b := range args {
 		nArgs[a] = b
 	}
-	r, err := q.tx.NamedExec(stm, args)
-	if err != nil {
-		return err
+	var eff int64=0
+	if q.lama.Tx!=nil{
+		log.Println("within transaction")
+		r, err := q.lama.Tx.NamedExec(stm, args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+	}else {
+		log.Println("within pool")
+		r, err := q.lama.DB.NamedExec(stm, args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
 	}
-	eff, err := r.RowsAffected()
+
 	log.Println("rows effected:", eff)
 	return err
 }
 
 func (q *Query) Add(entity interface{}) (err error) {
 	defer func() {
-		q.FinalizeWith(err)
+		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
 			log.Println("panic:", r)
 			errr, ok := r.(error)
@@ -602,9 +606,6 @@ func (q *Query) Add(entity interface{}) (err error) {
 			}
 		}
 	}()
-	if q.tx == nil {
-		return errors.New("no database connection defined")
-	}
 	if len(q.errors) > 0 {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
@@ -619,16 +620,27 @@ func (q *Query) Add(entity interface{}) (err error) {
 	for a, b := range args {
 		nArgs[a] = b
 	}
-	r, err := q.tx.NamedExec(stm, args)
-	if err != nil {
-		return err
+	var eff int64=0;
+	if q.lama.Tx!=nil{
+		log.Println("within transaction")
+		r, err := q.lama.Tx.NamedExec(stm, args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+	}else {
+		log.Println("within pool")
+		r, err := q.lama.DB.NamedExec(stm, args)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
 	}
-	eff, err := r.RowsAffected()
 	log.Println("rows effected:", eff)
 	return err
 }
 
-func (q *Query) Finalize(commit bool) error {
+/*func (q *Query) Finalize(commit bool) error {
 	if q.havePrivateTransaction && q.tx != nil {
 		if commit {
 			return q.tx.Commit()
@@ -637,9 +649,9 @@ func (q *Query) Finalize(commit bool) error {
 		}
 	}
 	return nil
-}
+}*/
 
-func (q *Query) FinalizeWith(err error) error {
+/*func (q *Query) FinalizeWith(err error) error {
 	commit := true
 	if err != nil {
 		commit = false
@@ -655,7 +667,7 @@ func (q *Query) FinalizeWith(err error) error {
 		}
 	}
 	return nil
-}
+}*/
 
 func (q *Query) setModel(dest interface{}) {
 	if reflect.TypeOf(dest).Kind() == reflect.Struct {
@@ -668,3 +680,27 @@ func (q *Query) setModel(dest interface{}) {
 		}
 	}
 }
+
+/*func (q *Query) getTx() (*sqlx.Tx,func(error),error) {
+	if q.lama.Tx == nil {
+		tx, err := q.lama.DB.Beginx()
+		if err != nil {
+			q.addError(err)
+			return nil,nil,err
+		} else {
+			q.havePrivateTransaction = true
+			return tx, func(err error) {
+				if err!=nil{
+					tx.Rollback()
+				} else {
+					tx.Commit()
+				}
+			},nil
+		}
+	} else {
+		q.havePrivateTransaction = false
+		return q.lama.Tx, func(err error) {
+
+		},nil
+	}
+}*/

@@ -43,6 +43,7 @@ func StructToMap(inx interface{}, skipZeroValue bool, skipComputedColumn bool, u
 	if inx == nil {
 		return ret, nil
 	}
+	//log.Println("stm", reflect.TypeOf(inx))
 	tf := reflect.TypeOf(inx)
 	if tf.Kind() == reflect.Ptr {
 		strct := reflect.ValueOf(inx).Elem().Interface()
@@ -61,13 +62,27 @@ func StructToMap(inx interface{}, skipZeroValue bool, skipComputedColumn bool, u
 		}
 	}
 	if tf.Kind() == reflect.Struct {
+		//log.Println(tf.Name())
 		nf := tf.NumField()
+		val := reflect.ValueOf(inx)
+		if !val.IsValid() {
+			return nil, errors.New("struct value not valied")
+		}
 		for i := 0; i < nf; i++ {
 			filed := reflect.TypeOf(inx).Field(i)
+			//log.Println(filed.Name)
 			tag, _ := FieldTagExtractor(inx, filed.Name)
 			if tag != nil {
 				colName := tag.ColumnName
-				cVal := reflect.ValueOf(inx).Field(i).Interface()
+				if colName == "" {
+					continue
+				}
+				fVal := val.Field(i)
+				if !fVal.IsValid() {
+					continue
+				}
+				//log.Println("colName", colName, fVal)
+				cVal := val.Field(i).Interface()
 				isZero := false
 				if skipZeroValue {
 					if cVal == nil || reflect.ValueOf(cVal).IsZero() || !reflect.ValueOf(cVal).IsValid() {
