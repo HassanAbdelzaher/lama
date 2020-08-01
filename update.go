@@ -1,6 +1,7 @@
 package lama
 
 import (
+	"database/sql"
 	"log"
 )
 
@@ -8,9 +9,9 @@ type UpdateQuery struct {
 	Query
 }
 
-func (q *UpdateQuery) Build() (string, map[string]interface{}) {
+func (q *UpdateQuery) Build() (string, []sql.NamedArg) {
 	if q.args == nil {
-		q.args = make(map[string]interface{}, 0)
+		q.args = make([]sql.NamedArg, 0)
 	}
 	statment := "update "
 	frm := q.getFrom()
@@ -29,8 +30,9 @@ func (q *UpdateQuery) Build() (string, map[string]interface{}) {
 		if itr > 1 {
 			statment = statment + ","
 		}
-		statment = statment + k + "=:" + k
-		q.args[k] = v
+		statment = statment + k + "=@" + k
+		//q.args[k] = v
+		q.args=append(q.args,sql.NamedArg{Name:k,Value:v})
 	}
 	where := q.buildWhere()
 	statment = statment + where

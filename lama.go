@@ -37,7 +37,7 @@ func nQ(l *Lama) *Query {
 	l.Lock()
 	defer l.Unlock()
 	query := Query{debug: l.Debug,lama:l}
-	query.args = make(map[string]interface{})
+	query.args = make([]sql.NamedArg,0)
 	query.values = make(map[string]interface{})
 	//createing new transaction with new query
 	//make connection leak

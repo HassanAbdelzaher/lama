@@ -1,6 +1,7 @@
 package lama
 
 import (
+	"database/sql"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -11,13 +12,13 @@ type Where struct {
 	Op    string
 	Value interface{}
 	Or    []Where
-	Args  map[string]interface{}
+	Args  []sql.NamedArg
 	Raw   string
 }
 
-func (w *Where) Build() (string, map[string]interface{}) {
+func (w *Where) Build() (string, []sql.NamedArg) {
 	if w.Args == nil {
-		w.Args = make(map[string]interface{})
+		w.Args = make([]sql.NamedArg,0)
 	}
 	bnN := "arg"
 	if len(w.Expr) > 0 {
@@ -51,16 +52,17 @@ func (w *Where) Build() (string, map[string]interface{}) {
 			} else {
 				or = or + " OR " + stm
 			}
-			for a, b := range args {
-				w.Args[a] = b
+			for _, b := range args {
+				//w.Args[a] = b
+				w.Args=append(w.Args,b)
 			}
 		}
 	}
 	wh := ""
 	if len(w.Expr) > 0 {
-		wh = "(" + w.Expr + w.Op + ":" + name + ")"
-		//w.Args = append(w.Args, sql.NamedArg{Name: name, Value: w.Value})
-		w.Args[name] = w.Value
+		wh = "(" + w.Expr + w.Op + "@" + name + ")"
+		w.Args = append(w.Args, sql.NamedArg{Name: name, Value: w.Value})
+		//w.Args[name] = w.Value
 	}
 	if len(w.Raw) > 0 {
 		wh = "(" + w.Raw + ")"

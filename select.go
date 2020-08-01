@@ -1,6 +1,7 @@
 package lama
 
 import (
+	"database/sql"
 	"log"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ type SelectQuery struct {
 	Query
 }
 
-func (q *SelectQuery) Build() (string, map[string]interface{}) {
+func (q *SelectQuery) Build() (string, []sql.NamedArg) {
 	statment := "select "
 	if q.limit > 0 {
 		statment = statment + " top " + strconv.Itoa(q.limit) + " "
