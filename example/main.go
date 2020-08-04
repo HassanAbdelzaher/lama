@@ -30,15 +30,15 @@ func main() {
 func do(id string) {
 	log.Println("start " + id)
 	db, err := conn.Begin()
-
+    count,err:=db.Model(Test{}).Count()
+	log.Println(*count)
+	return
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer db.Rollback()
 
 	///Test Count
-	var count int
-	err=db.Model(Test{}).Count(&count)
 	log.Println(err,count)
 	name:="hassan"
 //  add
