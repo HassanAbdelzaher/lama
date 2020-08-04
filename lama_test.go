@@ -44,13 +44,12 @@ func TestDelete(t *testing.T){
 		t.Error(err.Error())
 		return
 	}
-	var count int
-	err=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count(&count)
+	count,err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
 	if err!=nil{
 		t.Error(err.Error())
 		return
 	}
-	if count>0 {
+	if *count>0 {
 		t.Errorf("after delete expected count is 0 while found %v",count)
 	}
 }
@@ -71,13 +70,12 @@ func TestAdd(t *testing.T){
 		t.Error(err.Error())
 		return
 	}
-	var count int
-	err=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count(&count)
+	count,err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
 	if err!=nil{
 		t.Error(err.Error())
 		return
 	}
-	if count!=1 {
+	if *count!=1 {
 		t.Errorf("after delete expected count is 1 while found %v",count)
 	}
 }
@@ -127,5 +125,14 @@ func TestSave(t *testing.T)  {
 	}
 	if tbl2.COUNTER!=counter+1{
 		t.Errorf("found %v while expected %v",tbl2.COUNTER,counter+1)
+	}
+}
+
+func TestSum(t *testing.T)  {
+	sm,err:=lama.Model(TestTable{}).Sum("ID")
+	if err!=nil{
+		//t.Error(err)
+	}else {
+		t.Log(sm)
 	}
 }

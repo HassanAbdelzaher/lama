@@ -424,7 +424,7 @@ func (q *Query) Last(dest interface{}) (err error) {
 	return q.Get(dest)
 }
 
-func (q *Query) Count(dest interface{}) (err error) {
+func (q *Query) Count() (count *int64,err error) {
 	defer func() {
 		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
@@ -436,16 +436,46 @@ func (q *Query) Count(dest interface{}) (err error) {
 		}
 	}()
 	if len(q.errors) > 0 {
-		return errors.New("more than one error occured:" + q.errors[0].Error())
+		return nil,errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	key := "*"
 	if key == "" {
 		key = "*"
 	}
 	q.columns = make([]string, 0)
-	q.columns = append(q.columns, "count("+key+") as COUNT")
-	return q.Get(dest)
+	q.columns = append(q.columns, "count("+key+") as Count")
+	//var res Count
+	var count_ int64
+	err=q.Get(&count_)
+	if err!=nil {
+		return nil,err
+	}
+	return &count_,nil
 }
+func (q *Query) Sum( column string) (sm *float64,err error) {
+	defer func() {
+		//q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return nil,errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	if column == "" {
+		return nil,errors.New("invalied column name")
+	}
+	q.columns = make([]string, 0)
+	q.columns = append(q.columns, "SUM("+column+") as SM")
+	var _sm float64
+	err=q.Get(&_sm)
+	return &_sm,err
+}
+
 func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 	defer func() {
 		//q.FinalizeWith(err)
@@ -735,6 +765,7 @@ func (q *Query) Add(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
+
 
 /*func (q *Query) Finalize(commit bool) error {
 	if q.havePrivateTransaction && q.tx != nil {
