@@ -103,7 +103,11 @@ func (l *Lama) Save(entity interface{}) error {
 
 	return er
 }
+func (l *Lama) Delete(entity interface{}) error {
+	er := nQ(l).Delete(entity)
 
+	return er
+}
 func (l *Lama) Add(entity interface{}) error {
 	er := nQ(l).Add(entity)
 	return er

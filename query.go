@@ -560,6 +560,91 @@ func (q *Query) Save(entity interface{}) (err error) {
 	return err
 }
 
+
+//delete entity
+func (q *Query) Delete(entity interface{}) (err error) {
+	var tx *Lama
+	defer func() {
+		if(tx!=nil){
+			if err!=nil{
+				log.Println("private transaction roolback")
+				err=tx.Rollback()
+			}else {
+				log.Println("private transaction commit")
+				err=tx.Commit()
+			}
+		}
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			} else {
+				if err == nil {
+					err = errors.New(("painc at save"))
+				}
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	//must be set befour build
+	if q.model == nil {
+		q.setModel(entity)
+	}
+	keys, err := primaryKey(entity)
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
+		return errors.New("primary key is missing")
+	}
+	slq := DeleteQuery{Query: *q}
+	slq.Where(keys)
+	stm, args := slq.Build()
+	var eff int64=0
+	ar:=make([]interface{},0)
+	if args!=nil{
+		for _,b:=range args{
+			ar=append(ar,b)
+		}
+	}
+	//this function must be save and rollback if have private transaction
+
+	if q.lama.Tx!=nil{
+		r, err:=q.lama.Tx.Exec(stm,ar...)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}else {
+		tx,err=q.lama.Begin()
+		if err != nil {
+			return err
+		}
+		r, err:=tx.Tx.Exec(stm,ar...)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}
+	if eff == 0 {
+		err = errors.New("no data updated")
+	}
+	if eff > 1 {
+		err = errors.New("more than one entity operation cancelled ")
+	}
+	log.Println("rows effected:", eff)
+	return err
+}
+
 //save entity
 func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error) {
 	defer func() {
