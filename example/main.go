@@ -30,7 +30,7 @@ func main() {
 func do(id string) {
 	log.Println("start " + id)
 	db, err := conn.Begin()
-    count,err:=db.Model(Test{}).Sum("ID")
+    count,err:=db.Model(Test{}).Where(`1=3`).Sum("ID")
     if err!=nil{
     	log.Println(err)
 		return

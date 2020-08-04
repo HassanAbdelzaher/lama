@@ -471,9 +471,16 @@ func (q *Query) Sum( column string) (sm *float64,err error) {
 	}
 	q.columns = make([]string, 0)
 	q.columns = append(q.columns, "SUM("+column+") as SM")
-	var _sm float64
+	var _sm *float64
 	err=q.Get(&_sm)
-	return &_sm,err
+	if err!=nil{
+		return nil,err
+	}
+	if _sm==nil{
+		var zero float64=0
+		return &zero,nil
+	}
+	return _sm,err
 }
 
 func (q *Query) CountColumn(dest interface{}, key string) (err error) {
