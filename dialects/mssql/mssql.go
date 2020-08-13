@@ -1,6 +1,7 @@
 package mssql
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -11,45 +12,23 @@ import (
 	"time"
 
 	// Importing mssql driver package only in dialect file, otherwide not needed
+	"github.com/HassanAbdelzaher/lama"
 	_ "github.com/denisenkom/go-mssqldb"
-	"github.com/jinzhu/gorm"
 )
 
-func setIdentityInsert(scope *gorm.Scope) {
-	if scope.Dialect().GetName() == "mssql" {
-		for _, field := range scope.PrimaryFields() {
-			if _, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok && !field.IsBlank {
-				scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v ON", scope.TableName()))
-				scope.InstanceSet("mssql:identity_insert_on", true)
-			}
-		}
-	}
-}
-
-func turnOffIdentityInsert(scope *gorm.Scope) {
-	if scope.Dialect().GetName() == "mssql" {
-		if _, ok := scope.InstanceGet("mssql:identity_insert_on"); ok {
-			scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v OFF", scope.TableName()))
-		}
-	}
-}
-
 func init() {
-	gorm.DefaultCallback.Create().After("gorm:begin_transaction").Register("mssql:set_identity_insert", setIdentityInsert)
-	gorm.DefaultCallback.Create().Before("gorm:commit_or_rollback_transaction").Register("mssql:turn_off_identity_insert", turnOffIdentityInsert)
-	gorm.RegisterDialect("mssql", &mssql{})
+	lama.RegisterDialect("sqlserver", &mssql{})
 }
 
 type mssql struct {
-	db gorm.SQLCommon
-	gorm.DefaultForeignKeyNamer
+	db *sql.DB
 }
 
 func (mssql) GetName() string {
-	return "mssql"
+	return "sqlserver"
 }
 
-func (s *mssql) SetDB(db gorm.SQLCommon) {
+func (s *mssql) SetDB(db *sql.DB) {
 	s.db = db
 }
 
@@ -57,12 +36,16 @@ func (mssql) BindVar(i int) string {
 	return "$$$" // ?
 }
 
+func (mssql) BindVarStr(i string) string {
+	return fmt.Sprintf("@%s", i) // ?
+}
+
 func (mssql) Quote(key string) string {
 	return fmt.Sprintf(`[%s]`, key)
 }
 
-func (s *mssql) DataTypeOf(field *gorm.StructField) string {
-	var dataValue, sqlType, size, additionalType = gorm.ParseFieldStructForDialect(field, s)
+func (s *mssql) DataTypeOf(field *lama.StructField) string {
+	var dataValue, sqlType, size, additionalType = lama.ParseFieldStructForDialect(field, s)
 
 	if sqlType == "" {
 		switch dataValue.Kind() {
@@ -95,7 +78,7 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 				sqlType = "datetimeoffset"
 			}
 		default:
-			if gorm.IsByteArrayOrSlice(dataValue) {
+			if lama.IsByteArrayOrSlice(dataValue) {
 				if size > 0 && size < 8000 {
 					sqlType = fmt.Sprintf("varbinary(%d)", size)
 				} else {
@@ -115,11 +98,12 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s mssql) fieldCanAutoIncrement(field *gorm.StructField) bool {
+func (s mssql) fieldCanAutoIncrement(field *lama.StructField) bool {
 	if value, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok {
 		return value != "FALSE"
 	}
-	return field.IsPrimaryKey
+	return false
+	//return field.IsPrimaryKey
 }
 
 func (s mssql) HasIndex(tableName string, indexName string) bool {
@@ -220,7 +204,7 @@ func (mssql) NormalizeIndexAndColumn(indexName, columnName string) (string, stri
 	return indexName, columnName
 }
 
-func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
+func currentDatabaseAndTable(dialect lama.Dialect, tableName string) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)
 		return splitStrings[0], splitStrings[1]

@@ -2,6 +2,7 @@ package lama
 
 import (
 	"database/sql"
+	"errors"
 	"sync"
 	"time"
 
@@ -10,9 +11,10 @@ import (
 
 type Lama struct {
 	//query Query
-	DB    *sqlx.DB
-	Tx    *sqlx.Tx
-	Debug bool
+	DB      *sqlx.DB
+	Tx      *sqlx.Tx
+	Debug   bool
+	dialect Dialect
 	sync.Mutex
 }
 
@@ -26,10 +28,15 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	DbConn.SetMaxIdleConns(1)
 	DbConn.SetConnMaxLifetime(30 * time.Minute)
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
+	dialect, ok := GetDialect(driver)
+	if !ok {
+		return nil, errors.New("dialect ot found " + driver)
+	}
 	return &Lama{
 		//query: Query{db: DbConn},
 		DB:    DbConn,
 		Debug: false,
+		dialect:dialect
 	}, nil
 }
 

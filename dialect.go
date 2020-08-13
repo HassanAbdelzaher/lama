@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// IsByteArrayOrSlice returns true of the reflected value is an array or slice
+func IsByteArrayOrSlice(value reflect.Value) bool {
+	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == reflect.TypeOf(uint8(0))
+}
+
 // Dialect interface contains behaviors that differ across SQL database
 type Dialect interface {
 	// GetName get dialect's name
@@ -18,6 +23,8 @@ type Dialect interface {
 
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
+
+	BindVarStr(i string) string
 	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name
 	Quote(key string) string
 	// DataTypeOf return data's sql type
@@ -48,7 +55,7 @@ type Dialect interface {
 	DefaultValueStr() string
 
 	// BuildKeyName returns a valid key name (foreign key, index key) for the given table, field and reference
-	BuildKeyName(kind, tableName string, fields ...string) string
+	//BuildKeyName(kind, tableName string, fields ...string) string
 
 	// NormalizeIndexAndColumn returns valid index name and column name depending on each dialect
 	NormalizeIndexAndColumn(indexName, columnName string) (string, string)
