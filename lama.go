@@ -36,8 +36,8 @@ func Connect(driver string, connstr string) (*Lama, error) {
 func nQ(l *Lama) *Query {
 	l.Lock()
 	defer l.Unlock()
-	query := Query{debug: l.Debug,lama:l}
-	query.args = make([]sql.NamedArg,0)
+	query := Query{debug: l.Debug, lama: l}
+	query.args = make([]sql.NamedArg, 0)
 	query.values = make(map[string]interface{})
 	//createing new transaction with new query
 	//make connection leak
@@ -57,10 +57,10 @@ func (l *Lama) Offset(off int) *Query {
 func (l *Lama) Select(cols ...string) *Query {
 	return nQ(l).Select(cols...)
 }
-func (l *Lama) Count() (*int64,error) {
+func (l *Lama) Count() (*int64, error) {
 	return nQ(l).Count()
 }
-func (l *Lama) Sum(column string) (*float64,error) {
+func (l *Lama) Sum(column string) (*float64, error) {
 	return nQ(l).Sum(column)
 }
 func (l *Lama) CountColumn(dest interface{}, expr string) error {
@@ -142,7 +142,7 @@ func (l *Lama) Begin() (*Lama, error) {
 }
 
 func (l *Lama) Commit() error {
-	if l.Tx!=nil{
+	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()
 		if l.Tx == nil {
@@ -156,7 +156,7 @@ func (l *Lama) Commit() error {
 }
 
 func (l *Lama) Rollback() error {
-	if l.Tx!=nil {
+	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()
 		if l.Tx == nil {
@@ -166,5 +166,5 @@ func (l *Lama) Rollback() error {
 		l.Tx = nil
 		return err
 	}
-	return nil;
+	return nil
 }

@@ -15,24 +15,24 @@ import (
 type ZeroValueType string
 
 type Query struct {
-	from                   string
+	from string
 	//args                   map[string]interface{}
-	args []sql.NamedArg
-	wheres                 []Where
-	values                 map[string]interface{}
-	SkipZeroValues         bool
-	orderBy                []string
-	limit                  int
-	offset                 int
-	groupBy                []string
-	columns                []string
-	ReturningColumn        string
+	args            []sql.NamedArg
+	wheres          []Where
+	values          map[string]interface{}
+	SkipZeroValues  bool
+	orderBy         []string
+	limit           int
+	offset          int
+	groupBy         []string
+	columns         []string
+	ReturningColumn string
 	//tx                     *sqlx.Tx
 	model                  interface{}
 	errors                 []error
 	debug                  bool
 	havePrivateTransaction bool
-	lama *Lama
+	lama                   *Lama
 }
 
 func (q *Query) Debug(dbg bool) *Query {
@@ -53,7 +53,7 @@ func (q *Query) getFrom() string {
 }
 
 func (q *Query) iArgs() []sql.NamedArg {
-	iar := make([]sql.NamedArg,0)
+	iar := make([]sql.NamedArg, 0)
 	if q.args == nil {
 		return iar
 	}
@@ -91,7 +91,7 @@ func (q *Query) _where(w Where) *Query {
 
 func (q *Query) buildWhere() string {
 	if q.args == nil {
-		q.args = make([]sql.NamedArg,0)
+		q.args = make([]sql.NamedArg, 0)
 	}
 	statment := ""
 	if q.wheres != nil && len(q.wheres) > 0 {
@@ -110,8 +110,8 @@ func (q *Query) buildWhere() string {
 			}
 			whs, args := w.Build()
 			statment = statment + whs + " "
-			if args!=nil{
-				q.args=append(q.args,args...)
+			if args != nil {
+				q.args = append(q.args, args...)
 			}
 			/*for a, b := range args {
 				q.args[a] = b
@@ -254,7 +254,7 @@ func (q *Query) WhereIn(key string, values ...interface{}) *Query {
 	if values == nil || len(values) == 0 {
 		return q
 	}
-	args := make([]sql.NamedArg,0)
+	args := make([]sql.NamedArg, 0)
 	ins := make([]string, 0)
 	for idx, v := range values {
 		nam := "Arg" + strconv.Itoa(idx) + strconv.Itoa(rand.Int())
@@ -300,8 +300,8 @@ func (q *Query) Find(dest interface{}) (err error) {
 	}
 	//must be set befoure build
 	//tx,rolOrCommi,err:=q.getTx()
-	if err!=nil {
-		return  err
+	if err != nil {
+		return err
 	}
 	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
 		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
@@ -313,9 +313,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 		for _, b := range args {
 			namedArgs = append(namedArgs, b)
 		}
-		if q.lama.Tx!=nil{
+		if q.lama.Tx != nil {
 			return q.lama.Tx.Select(slice, stm, namedArgs...)
-		}else {
+		} else {
 			return q.lama.DB.Select(slice, stm, namedArgs...)
 		}
 	} else {
@@ -328,9 +328,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 		for _, b := range args {
 			namedArgs = append(namedArgs, b)
 		}
-		if q.lama.Tx!=nil{
+		if q.lama.Tx != nil {
 			return q.lama.Tx.Select(slice, stm, namedArgs...)
-		}else {
+		} else {
 			return q.lama.DB.Select(slice, stm, namedArgs...)
 		}
 	}
@@ -357,9 +357,9 @@ func (q *Query) Get(dest interface{}) (err error) {
 	for _, b := range args {
 		namedArgs = append(namedArgs, b)
 	}
-	if q.lama.Tx!=nil{
+	if q.lama.Tx != nil {
 		return q.lama.Tx.Get(dest, stm, namedArgs...)
-	}else {
+	} else {
 		return q.lama.DB.Get(dest, stm, namedArgs...)
 	}
 	//err = q.tx.Get(dest, stm, namedArgs...)
@@ -424,7 +424,7 @@ func (q *Query) Last(dest interface{}) (err error) {
 	return q.Get(dest)
 }
 
-func (q *Query) Count() (count *int64,err error) {
+func (q *Query) Count() (count *int64, err error) {
 	defer func() {
 		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
@@ -436,7 +436,7 @@ func (q *Query) Count() (count *int64,err error) {
 		}
 	}()
 	if len(q.errors) > 0 {
-		return nil,errors.New("more than one error occured:" + q.errors[0].Error())
+		return nil, errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	key := "*"
 	if key == "" {
@@ -446,13 +446,13 @@ func (q *Query) Count() (count *int64,err error) {
 	q.columns = append(q.columns, "count("+key+") as Count")
 	//var res Count
 	var count_ int64
-	err=q.Get(&count_)
-	if err!=nil {
-		return nil,err
+	err = q.Get(&count_)
+	if err != nil {
+		return nil, err
 	}
-	return &count_,nil
+	return &count_, nil
 }
-func (q *Query) Sum( column string) (sm *float64,err error) {
+func (q *Query) Sum(column string) (sm *float64, err error) {
 	defer func() {
 		//q.FinalizeWith(err)
 		if r := recover(); r != nil {
@@ -464,23 +464,23 @@ func (q *Query) Sum( column string) (sm *float64,err error) {
 		}
 	}()
 	if len(q.errors) > 0 {
-		return nil,errors.New("more than one error occured:" + q.errors[0].Error())
+		return nil, errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	if column == "" {
-		return nil,errors.New("invalied column name")
+		return nil, errors.New("invalied column name")
 	}
 	q.columns = make([]string, 0)
 	q.columns = append(q.columns, "SUM("+column+") as SM")
 	var _sm *float64
-	err=q.Get(&_sm)
-	if err!=nil{
-		return nil,err
+	err = q.Get(&_sm)
+	if err != nil {
+		return nil, err
 	}
-	if _sm==nil{
-		var zero float64=0
-		return &zero,nil
+	if _sm == nil {
+		var zero float64 = 0
+		return &zero, nil
 	}
-	return _sm,err
+	return _sm, err
 }
 
 func (q *Query) CountColumn(dest interface{}, key string) (err error) {
@@ -509,13 +509,13 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 func (q *Query) Save(entity interface{}) (err error) {
 	var tx *Lama
 	defer func() {
-		if(tx!=nil){
-			if err!=nil{
+		if tx != nil {
+			if err != nil {
 				log.Println("private transaction roolback")
-				err=tx.Rollback()
-			}else {
+				err = tx.Rollback()
+			} else {
 				log.Println("private transaction commit")
-				err=tx.Commit()
+				err = tx.Commit()
 			}
 		}
 		if r := recover(); r != nil {
@@ -555,17 +555,17 @@ func (q *Query) Save(entity interface{}) (err error) {
 		return errors.New("primary key is missing")
 	}
 	stm, args := slq.Build()
-	var eff int64=0
-	ar:=make([]interface{},0)
-	if args!=nil{
-		for _,b:=range args{
-			ar=append(ar,b)
+	var eff int64 = 0
+	ar := make([]interface{}, 0)
+	if args != nil {
+		for _, b := range args {
+			ar = append(ar, b)
 		}
 	}
 	//this function must be save and rollback if have private transaction
 
-	if q.lama.Tx!=nil{
-		r, err:=q.lama.Tx.Exec(stm,ar...)
+	if q.lama.Tx != nil {
+		r, err := q.lama.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -573,12 +573,12 @@ func (q *Query) Save(entity interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-	}else {
-		tx,err=q.lama.Begin()
+	} else {
+		tx, err = q.lama.Begin()
 		if err != nil {
 			return err
 		}
-		r, err:=tx.Tx.Exec(stm,ar...)
+		r, err := tx.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -597,18 +597,17 @@ func (q *Query) Save(entity interface{}) (err error) {
 	return err
 }
 
-
 //delete entity
 func (q *Query) Delete(entity interface{}) (err error) {
 	var tx *Lama
 	defer func() {
-		if(tx!=nil){
-			if err!=nil{
+		if tx != nil {
+			if err != nil {
 				log.Println("private transaction roolback")
-				err=tx.Rollback()
-			}else {
+				err = tx.Rollback()
+			} else {
 				log.Println("private transaction commit")
-				err=tx.Commit()
+				err = tx.Commit()
 			}
 		}
 		if r := recover(); r != nil {
@@ -640,17 +639,17 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	slq := DeleteQuery{Query: *q}
 	slq.Where(keys)
 	stm, args := slq.Build()
-	var eff int64=0
-	ar:=make([]interface{},0)
-	if args!=nil{
-		for _,b:=range args{
-			ar=append(ar,b)
+	var eff int64 = 0
+	ar := make([]interface{}, 0)
+	if args != nil {
+		for _, b := range args {
+			ar = append(ar, b)
 		}
 	}
 	//this function must be save and rollback if have private transaction
 
-	if q.lama.Tx!=nil{
-		r, err:=q.lama.Tx.Exec(stm,ar...)
+	if q.lama.Tx != nil {
+		r, err := q.lama.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -658,12 +657,12 @@ func (q *Query) Delete(entity interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-	}else {
-		tx,err=q.lama.Begin()
+	} else {
+		tx, err = q.lama.Begin()
 		if err != nil {
 			return err
 		}
-		r, err:=tx.Tx.Exec(stm,ar...)
+		r, err := tx.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -705,20 +704,20 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	}
 	slq := UpdateQuery{Query: *q}
 	stm, args := slq.Build()
-	var eff int64=0
-	ar:=make([]interface{},0)
-	if args!=nil{
-		for _,b:=range args{
-			ar=append(ar,b)
+	var eff int64 = 0
+	ar := make([]interface{}, 0)
+	if args != nil {
+		for _, b := range args {
+			ar = append(ar, b)
 		}
 	}
-	if q.lama.Tx!=nil{
+	if q.lama.Tx != nil {
 		r, err := q.lama.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
 		eff, err = r.RowsAffected()
-	}else {
+	} else {
 		r, err := q.lama.DB.Exec(stm, ar...)
 		if err != nil {
 			return err
@@ -751,18 +750,18 @@ func (q *Query) Add(entity interface{}) (err error) {
 	q.setValues(entity)
 	slq := InsertQuery{Query: *q}
 	stm, args := slq.Build()
-	var eff int64=0;
-	ar:=make([]interface{},0)
-	for _,b:=range args{
-		ar=append(ar,b)
+	var eff int64 = 0
+	ar := make([]interface{}, 0)
+	for _, b := range args {
+		ar = append(ar, b)
 	}
-	if q.lama.Tx!=nil{
+	if q.lama.Tx != nil {
 		r, err := q.lama.Tx.Exec(stm, ar...)
 		if err != nil {
 			return err
 		}
 		eff, err = r.RowsAffected()
-	}else {
+	} else {
 		r, err := q.lama.DB.Exec(stm, ar...)
 		if err != nil {
 			return err
@@ -772,7 +771,6 @@ func (q *Query) Add(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
-
 
 /*func (q *Query) Finalize(commit bool) error {
 	if q.havePrivateTransaction && q.tx != nil {
