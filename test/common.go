@@ -25,20 +25,8 @@ func (t *TestTable) TableName() string {
 }
 
 var lama *lama2.Lama
-func TestConnect(t *testing.T) {
-	t.Log("testing connect")
-	var err error
-	//lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
-	lama, err = lama2.Connect("godror", `user="hcs_edams" password="ashaman" connectString="localhost:1521/giza"`)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	lama.Debug=true
-	rand.Seed(time.Now().UnixNano())
-}
 
-
-func TestDelete(t *testing.T){
+func _TestDelete(t *testing.T){
 
 	count,err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
 	if err!=nil{
@@ -67,7 +55,7 @@ func TestDelete(t *testing.T){
 	}
 }
 
-func TestAdd(t *testing.T){
+func _TestAdd(t *testing.T){
 	//TestConnect(t)
 	rnd:=rand.Int63()
 	t.Logf("expected id:%v",rnd)
@@ -93,7 +81,7 @@ func TestAdd(t *testing.T){
 	}
 }
 
-func TestUpdate(t *testing.T){
+func _TestUpdate(t *testing.T){
 	//TestConnect(t)
 	rnd:=rand.Int63()
 	err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Update(map[string]interface{}{
@@ -116,7 +104,7 @@ func TestUpdate(t *testing.T){
 	}
 }
 
-func TestSave(t *testing.T)  {
+func _TestSave(t *testing.T)  {
 	var tbl TestTable
 	err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).First(&tbl)
 	if err!=nil{
@@ -141,7 +129,7 @@ func TestSave(t *testing.T)  {
 	}
 }
 
-func TestSum(t *testing.T)  {
+func _TestSum(t *testing.T)  {
 	sm,err:=lama.Model(TestTable{}).Sum("ID")
 	if err!=nil{
 		//t.Error(err)
