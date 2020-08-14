@@ -9,7 +9,7 @@ type UpdateQuery struct {
 	Query
 }
 
-func (q *UpdateQuery) Build() (string, []sql.NamedArg) {
+func (q *UpdateQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	if q.args == nil {
 		q.args = make([]sql.NamedArg, 0)
 	}
@@ -30,13 +30,13 @@ func (q *UpdateQuery) Build() (string, []sql.NamedArg) {
 		if itr > 1 {
 			statment = statment + ","
 		}
-		statment = statment + k + "=@" + k
+		statment = statment + k + "=" + di.BindVarStr(k)
 		//q.args[k] = v
 		q.args=append(q.args,sql.NamedArg{Name:k,Value:v})
 	}
 	where := q.buildWhere()
 	statment = statment + where
-	if q.debug {
+	if q.debug && !di.HaveLog() {
 		log.Println(statment, q.args)
 	}
 	sArgs := q.iArgs()

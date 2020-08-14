@@ -3,7 +3,6 @@ package lama
 import (
 	"database/sql"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -11,11 +10,9 @@ type SelectQuery struct {
 	Query
 }
 
-func (q *SelectQuery) Build() (string, []sql.NamedArg) {
+func (q *SelectQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	statment := "select "
-	if q.limit > 0 {
-		statment = statment + " top " + strconv.Itoa(q.limit) + " "
-	}
+
 	if q.model != nil && (q.columns == nil || len(q.columns) == 0) {
 		q.ColumnsFromStructOrMap(q.model, false)
 	} else {
@@ -37,10 +34,8 @@ func (q *SelectQuery) Build() (string, []sql.NamedArg) {
 		ordBy := strings.Join(q.orderBy, ",")
 		statment = statment + " order by " + ordBy + " "
 	}
-	if q.offset > 0 {
-		statment = statment + " top " + strconv.Itoa(q.limit) + " "
-	}
-	if q.debug {
+	statment = di.LimitAndOffsetSQL(statment,q.limit,q.offset)
+	if q.debug &&!di.HaveLog() {
 		log.Println(statment, q.args)
 	}
 	return statment, q.iArgs()

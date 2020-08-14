@@ -10,7 +10,7 @@ type InsertQuery struct {
 	Query
 }
 
-func (q *InsertQuery) Build() (string, []sql.NamedArg) {
+func (q *InsertQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	if q.args == nil {
 		q.args = make([]sql.NamedArg, 0)
 	}
@@ -38,19 +38,17 @@ func (q *InsertQuery) Build() (string, []sql.NamedArg) {
 			values = values + ","
 		}
 		icols = icols + k
-		values = values + "@"+k
+		values = values + di.BindVarStr(k)
 		//q.args["@"+k] = v
 		q.args=append(q.args,sql.NamedArg{Name:k,Value:v})
 	}
+	icols = icols + ")";
 	if q.ReturningColumn != "" {
-		icols = icols + ") OUTPUT Inserted." + q.ReturningColumn + " "
-
-	} else {
-		icols = icols + ") "
+		icols = icols + di.LastInsertIDOutputInterstitial(q.getFrom(),q.ReturningColumn,q.columns)
 	}
 	values = values + ")"
 	statment = statment + icols + values
-	if q.debug {
+	if q.debug && !di.HaveLog() {
 		log.Println(statment, q.args)
 	}
 	return statment, q.iArgs()

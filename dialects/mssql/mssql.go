@@ -21,16 +21,16 @@ func init() {
 }
 
 type mssql struct {
-	db *sql.DB
+}
+
+func (mssql) HaveLog() bool {
+	return true
 }
 
 func (mssql) GetName() string {
 	return "sqlserver"
 }
 
-func (s *mssql) SetDB(db *sql.DB) {
-	s.db = db
-}
 
 func (mssql) BindVar(i int) string {
 	return "$$$" // ?
@@ -106,21 +106,21 @@ func (s mssql) fieldCanAutoIncrement(field *lama.StructField) bool {
 	//return field.IsPrimaryKey
 }
 
-func (s mssql) HasIndex(tableName string, indexName string) bool {
+func (s mssql) HasIndex(tableName string, indexName string,db *sql.DB) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
+	db.QueryRow("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) RemoveIndex(tableName string, indexName string) error {
-	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
+func (s mssql) RemoveIndex(tableName string, indexName string,db *sql.DB) error {
+	_, err := db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
 	return err
 }
 
-func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
+func (s mssql) HasForeignKey(tableName string, foreignKeyName string,db *sql.DB) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow(`SELECT count(*) 
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName,db)
+	db.QueryRow(`SELECT count(*) 
 	FROM sys.foreign_keys as F inner join sys.tables as T on F.parent_object_id=T.object_id 
 		inner join information_schema.tables as I on I.TABLE_NAME = T.name 
 	WHERE F.name = ? 
@@ -128,27 +128,27 @@ func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return count > 0
 }
 
-func (s mssql) HasTable(tableName string) bool {
+func (s mssql) HasTable(tableName string,db *sql.DB) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName,db)
+	db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) HasColumn(tableName string, columnName string) bool {
+func (s mssql) HasColumn(tableName string, columnName string,db *sql.DB) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName,db)
+	db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) ModifyColumn(tableName string, columnName string, typ string) error {
-	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
+func (s mssql) ModifyColumn(tableName string, columnName string, typ string,db *sql.DB) error {
+	_, err := db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
 	return err
 }
 
-func (s mssql) CurrentDatabase() (name string) {
-	s.db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
+func (s mssql) CurrentDatabase(db *sql.DB) (name string) {
+	db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
 	return
 }
 
@@ -156,24 +156,17 @@ func parseInt(value interface{}) (int64, error) {
 	return strconv.ParseInt(fmt.Sprint(value), 0, 0)
 }
 
-func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
-	if offset != nil {
-		if parsedOffset, err := parseInt(offset); err != nil {
-			return "", err
-		} else if parsedOffset >= 0 {
-			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
-		}
+func (mssql) LimitAndOffsetSQL(statment string,limit, offset *int) (sql string) {
+	sql=statment+" "
+	if offset != nil && *offset>=0 {
+		sql += fmt.Sprintf(" OFFSET %d ROWS", *offset)
 	}
-	if limit != nil {
-		if parsedLimit, err := parseInt(limit); err != nil {
-			return "", err
-		} else if parsedLimit >= 0 {
-			if sql == "" {
-				// add default zero offset
-				sql += " OFFSET 0 ROWS"
-			}
-			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
+	if limit != nil && *limit>=0 {
+		if sql == "" {
+			// add default zero offset
+			sql += " OFFSET 0 ROWS"
 		}
+		sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", *limit)
 	}
 	return
 }
@@ -204,12 +197,12 @@ func (mssql) NormalizeIndexAndColumn(indexName, columnName string) (string, stri
 	return indexName, columnName
 }
 
-func currentDatabaseAndTable(dialect lama.Dialect, tableName string) (string, string) {
+func currentDatabaseAndTable(dialect lama.Dialect, tableName string,db *sql.DB) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)
 		return splitStrings[0], splitStrings[1]
 	}
-	return dialect.CurrentDatabase(), tableName
+	return dialect.CurrentDatabase(db), tableName
 }
 
 // JSON type to support easy handling of JSON data in character table fields

@@ -16,7 +16,7 @@ type Where struct {
 	Raw   string
 }
 
-func (w *Where) Build() (string, []sql.NamedArg) {
+func (w *Where) Build(di Dialect) (string, []sql.NamedArg) {
 	if w.Args == nil {
 		w.Args = make([]sql.NamedArg,0)
 	}
@@ -46,7 +46,7 @@ func (w *Where) Build() (string, []sql.NamedArg) {
 	or := ""
 	if w.Or != nil {
 		for idx, o := range w.Or {
-			stm, args := o.Build()
+			stm, args := o.Build(di)
 			if idx == 0 {
 				or = stm
 			} else {
@@ -60,7 +60,7 @@ func (w *Where) Build() (string, []sql.NamedArg) {
 	}
 	wh := ""
 	if len(w.Expr) > 0 {
-		wh = "(" + w.Expr + w.Op + "@" + name + ")"
+		wh = "(" + w.Expr + w.Op + di.BindVarStr(name) + ")"
 		w.Args = append(w.Args, sql.NamedArg{Name: name, Value: w.Value})
 		//w.Args[name] = w.Value
 	}

@@ -22,8 +22,8 @@ type Query struct {
 	values          map[string]interface{}
 	SkipZeroValues  bool
 	orderBy         []string
-	limit           int
-	offset          int
+	limit           *int
+	offset          *int
 	groupBy         []string
 	columns         []string
 	ReturningColumn string
@@ -108,7 +108,7 @@ func (q *Query) buildWhere() string {
 			} else {
 				statment = statment + " and  "
 			}
-			whs, args := w.Build()
+			whs, args := w.Build(q.lama.dialect)
 			statment = statment + whs + " "
 			if args != nil {
 				q.args = append(q.args, args...)
@@ -158,13 +158,13 @@ func (q *Query) OrderBy(by ...string) *Query {
 }
 func (q *Query) Limit(limit int) *Query {
 	if limit > 0 {
-		q.limit = limit
+		q.limit = &limit
 	}
 	return q
 }
 func (q *Query) Offset(off int) *Query {
 	if off > 0 {
-		q.offset = off
+		q.offset = &off
 	}
 	return q
 }
@@ -307,7 +307,7 @@ func (q *Query) Find(dest interface{}) (err error) {
 		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
 		q.setModel(elm)
 		slq := SelectQuery{Query: *q}
-		stm, args := slq.Build()
+		stm, args := slq.Build(q.lama.dialect)
 		slice := reflect.ValueOf(dest).Interface()
 		namedArgs := make([]interface{}, 0)
 		for _, b := range args {
@@ -323,7 +323,7 @@ func (q *Query) Find(dest interface{}) (err error) {
 		q.setModel(elm)
 		slice := reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
 		slq := SelectQuery{Query: *q}
-		stm, args := slq.Build()
+		stm, args := slq.Build(q.lama.dialect)
 		namedArgs := make([]interface{}, 0)
 		for _, b := range args {
 			namedArgs = append(namedArgs, b)
@@ -352,7 +352,7 @@ func (q *Query) Get(dest interface{}) (err error) {
 	//must be set befoure build
 	q.setModel(dest)
 	slq := SelectQuery{Query: *q}
-	stm, args := slq.Build()
+	stm, args := slq.Build(q.lama.dialect)
 	namedArgs := make([]interface{}, 0)
 	for _, b := range args {
 		namedArgs = append(namedArgs, b)
@@ -505,7 +505,7 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 	return q.Get(dest)
 }
 
-//save entity
+//Save update the holl entity
 func (q *Query) Save(entity interface{}) (err error) {
 	var tx *Lama
 	defer func() {
@@ -554,7 +554,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 	if len(keys) == 0 {
 		return errors.New("primary key is missing")
 	}
-	stm, args := slq.Build()
+	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
@@ -597,7 +597,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 	return err
 }
 
-//delete entity
+//Delere entity from database
 func (q *Query) Delete(entity interface{}) (err error) {
 	var tx *Lama
 	defer func() {
@@ -638,7 +638,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	}
 	slq := DeleteQuery{Query: *q}
 	slq.Where(keys)
-	stm, args := slq.Build()
+	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
@@ -681,7 +681,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	return err
 }
 
-//save entity
+//Update save partial data to entity to database
 func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error) {
 	defer func() {
 		//q.FinalizeWith(err)
@@ -703,7 +703,7 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 		return errors.New("bulk update not allowed")
 	}
 	slq := UpdateQuery{Query: *q}
-	stm, args := slq.Build()
+	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
@@ -728,7 +728,7 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	log.Println("rows effected:", eff)
 	return err
 }
-
+//Add insert new entity into the database
 func (q *Query) Add(entity interface{}) (err error) {
 	defer func() {
 		//q.FinalizeWith(err)
@@ -749,7 +749,7 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}
 	q.setValues(entity)
 	slq := InsertQuery{Query: *q}
-	stm, args := slq.Build()
+	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	for _, b := range args {
@@ -770,6 +770,18 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}
 	log.Println("rows effected:", eff)
 	return err
+}
+//setModel set the model used to find tablename and  generate colum names
+func (q *Query) setModel(dest interface{}) {
+	if reflect.TypeOf(dest).Kind() == reflect.Struct {
+		q.model = dest
+	}
+	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
+		elm := reflect.ValueOf(dest).Elem().Interface()
+		if reflect.TypeOf(elm).Kind() == reflect.Struct {
+			q.model = elm
+		}
+	}
 }
 
 /*func (q *Query) Finalize(commit bool) error {
@@ -800,18 +812,6 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}
 	return nil
 }*/
-
-func (q *Query) setModel(dest interface{}) {
-	if reflect.TypeOf(dest).Kind() == reflect.Struct {
-		q.model = dest
-	}
-	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
-		elm := reflect.ValueOf(dest).Elem().Interface()
-		if reflect.TypeOf(elm).Kind() == reflect.Struct {
-			q.model = elm
-		}
-	}
-}
 
 /*func (q *Query) getTx() (*sqlx.Tx,func(error),error) {
 	if q.lama.Tx == nil {

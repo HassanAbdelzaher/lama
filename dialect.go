@@ -2,7 +2,7 @@ package lama
 
 import (
 	"database/sql"
-	"errors"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -15,12 +15,9 @@ func IsByteArrayOrSlice(value reflect.Value) bool {
 
 // Dialect interface contains behaviors that differ across SQL database
 type Dialect interface {
+	HaveLog() bool
 	// GetName get dialect's name
 	GetName() string
-
-	// SetDB set db for dialect
-	SetDB(db *sql.DB)
-
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
 
@@ -29,22 +26,21 @@ type Dialect interface {
 	Quote(key string) string
 	// DataTypeOf return data's sql type
 	DataTypeOf(field *StructField) string
-
 	// HasIndex check has index or not
-	HasIndex(tableName string, indexName string) bool
+	HasIndex(tableName string, indexName string,db *sql.DB) bool
 	// HasForeignKey check has foreign key or not
-	HasForeignKey(tableName string, foreignKeyName string) bool
+	HasForeignKey(tableName string, foreignKeyName string,db *sql.DB) bool
 	// RemoveIndex remove index
-	RemoveIndex(tableName string, indexName string) error
+	RemoveIndex(tableName string, indexName string,db *sql.DB) error
 	// HasTable check has table or not
-	HasTable(tableName string) bool
+	HasTable(tableName string,db *sql.DB) bool
 	// HasColumn check has column or not
-	HasColumn(tableName string, columnName string) bool
+	HasColumn(tableName string, columnName string,db *sql.DB) bool
 	// ModifyColumn modify column's type
-	ModifyColumn(tableName string, columnName string, typ string) error
+	ModifyColumn(tableName string, columnName string, typ string,db *sql.DB) error
 
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
-	LimitAndOffsetSQL(limit, offset interface{}) (string, error)
+	LimitAndOffsetSQL(statment string,limit, offset *int) string
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
 	// LastInsertIDOutputInterstitial most dbs support LastInsertId, but mssql needs to use `OUTPUT`
@@ -61,18 +57,19 @@ type Dialect interface {
 	NormalizeIndexAndColumn(indexName, columnName string) (string, string)
 
 	// CurrentDatabase return current database name
-	CurrentDatabase() string
+	CurrentDatabase(db *sql.DB) string
 }
 
 var dialectsMap = map[string]Dialect{}
 
-func newDialect(name string, db *sql.DB) (Dialect, error) {
+func newDialect(name string) Dialect {
 	if value, ok := dialectsMap[name]; ok {
 		dialect := reflect.New(reflect.TypeOf(value).Elem()).Interface().(Dialect)
-		dialect.SetDB(db)
-		return dialect, nil
+		return dialect
 	}
-	return nil, errors.New("invalied dialect " + name)
+	log.Println("using default dialect")
+	return &defaultDialect{
+	}
 }
 
 // RegisterDialect register new dialect
@@ -141,10 +138,10 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	return fieldValue, dataType, size, strings.TrimSpace(additionalType)
 }
 
-func currentDatabaseAndTable(dialect Dialect, tableName string) (string, string) {
+func currentDatabaseAndTable(dialect Dialect, tableName string,db *sql.DB) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)
 		return splitStrings[0], splitStrings[1]
 	}
-	return dialect.CurrentDatabase(), tableName
+	return dialect.CurrentDatabase(db), tableName
 }

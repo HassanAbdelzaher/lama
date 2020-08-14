@@ -2,7 +2,6 @@ package lama
 
 import (
 	"database/sql"
-	"errors"
 	"sync"
 	"time"
 
@@ -20,6 +19,12 @@ type Lama struct {
 
 func Connect(driver string, connstr string) (*Lama, error) {
 	//cnsStr := fmt.Sprintf("server=%s;database=%s;user=%s;password=%s", config.AppConfig.Server, config.AppConfig.Database, config.AppConfig.User, config.AppConfig.Passeord)
+	if driver=="oracle" {
+		driver="godror"
+	}
+	if driver=="mssql" {
+		driver="sqlserver"
+	}
 	DbConn, err := sqlx.Connect(driver, connstr)
 	if err != nil {
 		return nil, err
@@ -28,15 +33,11 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	DbConn.SetMaxIdleConns(1)
 	DbConn.SetConnMaxLifetime(30 * time.Minute)
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
-	dialect, ok := GetDialect(driver)
-	if !ok {
-		return nil, errors.New("dialect ot found " + driver)
-	}
+	dialect := newDialect(driver)
 	return &Lama{
-		//query: Query{db: DbConn},
 		DB:    DbConn,
 		Debug: false,
-		dialect:dialect
+		dialect:dialect,
 	}, nil
 }
 

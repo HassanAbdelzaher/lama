@@ -9,7 +9,7 @@ type DeleteQuery struct {
 	Query
 }
 
-func (q *DeleteQuery) Build() (string, []sql.NamedArg) {
+func (q *DeleteQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	if q.args == nil {
 		q.args = make([]sql.NamedArg, 0)
 	}
@@ -18,7 +18,7 @@ func (q *DeleteQuery) Build() (string, []sql.NamedArg) {
 	statment = statment + frm + " "
 	where := q.buildWhere()
 	statment = statment + " " + where
-	if q.debug {
+	if q.debug && !di.HaveLog() {
 		log.Println(statment, q.args)
 	}
 	return statment, q.iArgs()
