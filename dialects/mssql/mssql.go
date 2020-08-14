@@ -158,15 +158,12 @@ func parseInt(value interface{}) (int64, error) {
 
 func (mssql) LimitAndOffsetSQL(statment string,limit, offset *int) (sql string) {
 	sql=statment+" "
+	of:=0
 	if offset != nil && *offset>=0 {
-		sql += fmt.Sprintf(" OFFSET %d ROWS", *offset)
+		of=*offset
 	}
 	if limit != nil && *limit>=0 {
-		if sql == "" {
-			// add default zero offset
-			sql += " OFFSET 0 ROWS"
-		}
-		sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", *limit)
+		sql += fmt.Sprintf(" OFFSET %d ROWS FETCH NEXT %d ROWS ONLY",of, *limit)
 	}
 	return
 }

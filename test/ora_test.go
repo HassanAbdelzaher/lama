@@ -19,7 +19,7 @@ func _TestOracleConnect(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func T1estOracle(t *testing.T)  {
+func TestOracle(t *testing.T)  {
 	_TestOracleConnect(t)
 	_TestDelete(t)
 	_TestAdd(t)
