@@ -1,10 +1,12 @@
-package lama
+package test
 
 import (
+	lama2 "github.com/HassanAbdelzaher/lama"
+	_ "github.com/HassanAbdelzaher/lama/dialects/mssql"
+	_ "github.com/HassanAbdelzaher/lama/dialects/oracle"
+	"math/rand"
 	"testing"
-	_ "github.com/denisenkom/go-mssqldb"
 	"time"
-   "math/rand"
 )
 type TestTable struct {
 	//[ 0] Id                                             INT                  null: false  primary: true   isArray: false  auto: false  col: INT             len: -1      default: []
@@ -22,40 +24,51 @@ func (t *TestTable) TableName() string {
 	return "TestTable"
 }
 
-var lama *Lama
+var lama *lama2.Lama
 func TestConnect(t *testing.T) {
+	t.Log("testing connect")
 	var err error
-	lama, err = Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
+	//lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
+	lama, err = lama2.Connect("godror", `user="hcs_edams" password="ashaman" connectString="localhost:1521/giza"`)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	lama.Debug=false
+	lama.Debug=true
 	rand.Seed(time.Now().UnixNano())
 }
 
 
 func TestDelete(t *testing.T){
-	TestConnect(t)
 
-	err:=lama.Delete(TestTable{
+	count,err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
+	if err!=nil{
+		t.Error(err.Error())
+		return
+	}
+	t.Logf("found count %d",count)
+	//TestConnect(t)
+	t.Log("deleting...")
+	err=lama.Delete(TestTable{
 		ID:         1,
 	})
 	if err!=nil{
 		t.Error(err.Error())
 		return
 	}
-	count,err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
+	t.Log("counting...")
+	count,err=lama.Model(TestTable{}).Where(TestTable{ID:1}).Count()
 	if err!=nil{
 		t.Error(err.Error())
 		return
 	}
+	t.Log("check...")
 	if *count>0 {
 		t.Errorf("after delete expected count is 0 while found %v",count)
 	}
 }
 
 func TestAdd(t *testing.T){
-	TestConnect(t)
+	//TestConnect(t)
 	rnd:=rand.Int63()
 	t.Logf("expected id:%v",rnd)
 	now:=time.Now()
@@ -81,7 +94,7 @@ func TestAdd(t *testing.T){
 }
 
 func TestUpdate(t *testing.T){
-	TestConnect(t)
+	//TestConnect(t)
 	rnd:=rand.Int63()
 	err:=lama.Model(TestTable{}).Where(TestTable{ID:1}).Update(map[string]interface{}{
 		"NAME":"hassan",
