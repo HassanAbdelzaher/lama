@@ -12,7 +12,7 @@ type TestTable struct {
 	//[ 0] Id                                             INT                  null: false  primary: true   isArray: false  auto: false  col: INT             len: -1      default: []
 	ID int32 `gorm:"primary_key;column:ID;type:INT;" db:"ID"`
 	//[ 1] Name                                           NVARCHAR(100)        null: true   primary: false  isArray: false  auto: false  col: NVARCHAR        len: 100     default: []
-	Name *string `gorm:"column:NAME;type:NVARCHAR;size:100;" db:"NAME"`
+	Name string `gorm:"column:NAME;type:NVARCHAR;size:100;" db:"NAME"`
 	//[ 2] Address                                        NVARCHAR(100)        null: true   primary: false  isArray: false  auto: false  col: NVARCHAR        len: 100     default: []
 	STAMP_DATE *time.Time `gorm:"column:STAMP_DATE;type:date;size:100;" json:"STAMP_DATE" db:"STAMP_DATE"`
 
@@ -25,6 +25,19 @@ func (t *TestTable) TableName() string {
 }
 
 var lama *lama2.Lama
+
+func _TestSelect(t *testing.T) {
+	var data []TestTable
+	err := lama.Model(TestTable{}).Find(&data)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	for _,d:=range data{
+		t.Log("name:"+d.Name)
+	}
+	//TestConnect(t)
+}
 
 func _TestDelete(t *testing.T){
 
@@ -63,7 +76,7 @@ func _TestAdd(t *testing.T){
 	name:="FIRST"
 	err:=lama.Add(TestTable{
 		ID:         1,
-		Name:       &name,
+		Name:       name,
 		STAMP_DATE: &now,
 		COUNTER:    rnd,
 	})

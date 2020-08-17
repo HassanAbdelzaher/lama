@@ -8,7 +8,6 @@ import (
 )
 
 func _TestOracleConnect(t *testing.T) {
-	t.Log("testing connect")
 	var err error
 	//lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
 	lama, err = lama2.Connect("godror", `user="hcs_edams" password="ashaman" connectString="localhost:1521/giza"`)
@@ -19,11 +18,15 @@ func _TestOracleConnect(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func TestOracle(t *testing.T)  {
+func T1estOracle(t *testing.T)  {
+	t.Error("testing oracle")
 	_TestOracleConnect(t)
 	_TestDelete(t)
 	_TestAdd(t)
 	_TestUpdate(t)
 	_TestSave(t)
 	_TestSum(t)
+	t.Log("testing connect oracle finish ")
+	t.Log("==========================================================")
+	t.Log("==========================================================")
 }

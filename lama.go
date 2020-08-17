@@ -146,6 +146,7 @@ func (l *Lama) Begin() (*Lama, error) {
 		Debug: l.Debug,
 		DB:    l.DB,
 		Tx:    tx,
+		dialect:l.dialect,
 	}, nil
 }
 

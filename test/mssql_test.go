@@ -8,7 +8,6 @@ import (
 )
 
 func _TestMssqlConnect(t *testing.T) {
-	t.Log("testing connect")
 	var err error
 	lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
 	if err != nil {
@@ -19,10 +18,15 @@ func _TestMssqlConnect(t *testing.T) {
 }
 
 func TestMssql(t *testing.T)  {
+	t.Error("testing connect mSSQL")
 	_TestMssqlConnect(t)
+	_TestSelect(t)
 	_TestDelete(t)
 	_TestAdd(t)
 	_TestUpdate(t)
 	_TestSave(t)
 	_TestSum(t)
+	t.Log("testing connect mSSQL finish ")
+	t.Log("==========================================================")
+	t.Log("==========================================================")
 }
