@@ -19,11 +19,11 @@ type Lama struct {
 
 func Connect(driver string, connstr string) (*Lama, error) {
 	//cnsStr := fmt.Sprintf("server=%s;database=%s;user=%s;password=%s", config.AppConfig.Server, config.AppConfig.Database, config.AppConfig.User, config.AppConfig.Passeord)
-	if driver=="oracle" {
-		driver="godror"
+	if driver == "oracle" {
+		driver = "godror"
 	}
-	if driver=="mssql" {
-		driver="sqlserver"
+	if driver == "mssql" {
+		driver = "sqlserver"
 	}
 	DbConn, err := sqlx.Connect(driver, connstr)
 	if err != nil {
@@ -35,9 +35,9 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
 	dialect := newDialect(driver)
 	return &Lama{
-		DB:    DbConn,
-		Debug: false,
-		dialect:dialect,
+		DB:      DbConn,
+		Debug:   false,
+		dialect: dialect,
 	}, nil
 }
 
@@ -55,6 +55,12 @@ func nQ(l *Lama) *Query {
 
 func (l *Lama) OrderBy(by ...string) *Query {
 	return nQ(l).OrderBy(by...)
+}
+func (l *Lama) GroupBy(by ...string) *Query {
+	return nQ(l).GroupBy(by...)
+}
+func (l *Lama) Having(expr string, args ...sql.NamedArg) *Query {
+	return nQ(l).Having(expr, args...)
 }
 func (l *Lama) Limit(limit int) *Query {
 	return nQ(l).Limit(limit)
@@ -143,10 +149,10 @@ func (l *Lama) Begin() (*Lama, error) {
 		return l, err
 	}
 	return &Lama{
-		Debug: l.Debug,
-		DB:    l.DB,
-		Tx:    tx,
-		dialect:l.dialect,
+		Debug:   l.Debug,
+		DB:      l.DB,
+		Tx:      tx,
+		dialect: l.dialect,
 	}, nil
 }
 
