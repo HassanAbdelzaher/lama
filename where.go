@@ -45,16 +45,17 @@ func (w *Where) Build(di Dialect) (string, []sql.NamedArg) {
 	name := bnN + strconv.Itoa(rand.Int())
 	or := ""
 	if w.Or != nil {
-		for idx, o := range w.Or {
+		for idx := range w.Or {
+			o:=w.Or[idx]
 			stm, args := o.Build(di)
 			if idx == 0 {
 				or = stm
 			} else {
 				or = or + " OR " + stm
 			}
-			for _, b := range args {
+			for i := range args {
 				//w.Args[a] = b
-				w.Args=append(w.Args,b)
+				w.Args=append(w.Args,args[i])
 			}
 		}
 	}

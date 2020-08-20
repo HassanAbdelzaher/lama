@@ -25,7 +25,8 @@ func (q *InsertQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	icols := "("
 	values := " values("
 	itr := 0
-	for k, v := range q.values {
+	for k := range q.values {
+		v:=q.values[k]
 		if q.SkipZeroValues && v != nil {
 			isZero := reflect.ValueOf(v).IsZero()
 			if isZero {

@@ -20,7 +20,8 @@ func (q *UpdateQuery) Build(di Dialect) (string, []sql.NamedArg) {
 	}
 	statment = statment + " set "
 	itr := 0
-	for k, v := range q.values {
+	for k := range q.values {
+		v:=q.values[k]
 		/*isZero:=reflect.ValueOf(v).IsZero()
 		if isZero {
 			continue

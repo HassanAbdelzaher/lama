@@ -13,13 +13,13 @@ func _TestOracleConnect(t *testing.T) {
 	lama, err = lama2.Connect("godror", `user="hcs_edams" password="ashaman" connectString="localhost:1521/giza"`)
 	if err != nil {
 		t.Error(err.Error())
+		return
 	}
 	lama.Debug=true
 	rand.Seed(time.Now().UnixNano())
 }
 
 func T1estOracle(t *testing.T)  {
-	t.Error("testing oracle")
 	_TestOracleConnect(t)
 	_TestDelete(t)
 	_TestAdd(t)

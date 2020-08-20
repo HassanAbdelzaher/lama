@@ -38,8 +38,8 @@ func TagExtractor(tag string) (*GormTag, error) {
 	gTag := GormTag{}
 	if len(tag) > 0 {
 		parts := strings.Split(tag, `;`)
-		for _, p := range parts {
-			p = strings.TrimSpace(p)
+		for i := range parts {
+			p := strings.TrimSpace(parts[i])
 			up := strings.TrimSpace(strings.ToUpper(p))
 			if strings.Index(up, "PRIMARY_KEY") == 0 {
 				gTag.PRIMARY_KEY = true

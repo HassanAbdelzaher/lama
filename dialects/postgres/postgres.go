@@ -21,7 +21,8 @@ func (h Hstore) Value() (driver.Value, error) {
 		return nil, nil
 	}
 
-	for key, value := range h {
+	for key, _ := range h {
+		value:=h[key]
 		var s sql.NullString
 		if value != nil {
 			s.String = *value

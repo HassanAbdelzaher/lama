@@ -73,8 +73,8 @@ func (q *Query) whereMap(keys map[string]interface{}) *Query {
 	if q.wheres == nil {
 		q.wheres = make([]Where, 0)
 	}
-	for k, v := range keys {
-		w := Where{Expr: k, Value: v, Op: "="}
+	for k := range keys {
+		w := Where{Expr: k, Value: keys[k], Op: "="}
 		q._where(w)
 	}
 	return q
@@ -95,7 +95,7 @@ func (q *Query) buildWhere() string {
 	}
 	statment := ""
 	if q.wheres != nil && len(q.wheres) > 0 {
-		for idx, w := range q.wheres {
+		for idx := range q.wheres {
 			/*isZero:=false
 			if w.Value!=nil{
 				isZero=reflect.ValueOf(w.Value).IsZero()
@@ -108,7 +108,7 @@ func (q *Query) buildWhere() string {
 			} else {
 				statment = statment + " and  "
 			}
-			whs, args := w.Build(q.lama.dialect)
+			whs, args := q.wheres[idx].Build(q.lama.dialect)
 			statment = statment + whs + " "
 			if args != nil {
 				q.args = append(q.args, args...)
@@ -177,7 +177,8 @@ func (q *Query) Select(cols ...string) *Query {
 func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	q.columns = make([]string, 0)
 	if structs.IsStruct(str) {
-		for _, v := range structs.Fields(str) {
+		for idx := range structs.Fields(str) {
+			v:=structs.Fields(str)[idx]
 			tag := v.Tag("db")
 			name := v.Name()
 			if tag != "" {
@@ -208,13 +209,13 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 			f := i.(*structs.Field)
 			return f.Tag("db")
 		})
-		for _, col := range q.columns {
-			ok, fCol := ContainsStrI(fields, col, false)
+		for i := range q.columns {
+			ok, fCol := ContainsStrI(fields, q.columns[i], false)
 			if ok {
 				nCols = append(nCols, fCol)
 			} else {
 				if !skipNotMatchedColumns {
-					nCols = append(nCols, col)
+					nCols = append(nCols, q.columns[i])
 				}
 			}
 		}
@@ -256,9 +257,9 @@ func (q *Query) WhereIn(key string, values ...interface{}) *Query {
 	}
 	args := make([]sql.NamedArg, 0)
 	ins := make([]string, 0)
-	for idx, v := range values {
+	for idx := range values {
 		nam := "Arg" + strconv.Itoa(idx) + strconv.Itoa(rand.Int())
-		args = append(args, sql.NamedArg{Name: nam, Value: v})
+		args = append(args, sql.NamedArg{Name: nam, Value: values[idx]})
 		//args[nam] = v
 		ins = append(ins, ":"+nam)
 	}
@@ -310,8 +311,8 @@ func (q *Query) Find(dest interface{}) (err error) {
 		stm, args := slq.Build(q.lama.dialect)
 		slice := reflect.ValueOf(dest).Interface()
 		namedArgs := make([]interface{}, 0)
-		for _, b := range args {
-			namedArgs = append(namedArgs, b)
+		for i := range args {
+			namedArgs = append(namedArgs, args[i])
 		}
 		if q.lama.Tx != nil {
 			return q.lama.Tx.Select(slice, stm, namedArgs...)
@@ -325,8 +326,8 @@ func (q *Query) Find(dest interface{}) (err error) {
 		slq := SelectQuery{Query: *q}
 		stm, args := slq.Build(q.lama.dialect)
 		namedArgs := make([]interface{}, 0)
-		for _, b := range args {
-			namedArgs = append(namedArgs, b)
+		for i := range args {
+			namedArgs = append(namedArgs, args[i])
 		}
 		if q.lama.Tx != nil {
 			return q.lama.Tx.Select(slice, stm, namedArgs...)
@@ -354,8 +355,8 @@ func (q *Query) Get(dest interface{}) (err error) {
 	slq := SelectQuery{Query: *q}
 	stm, args := slq.Build(q.lama.dialect)
 	namedArgs := make([]interface{}, 0)
-	for _, b := range args {
-		namedArgs = append(namedArgs, b)
+	for i:= range args {
+		namedArgs = append(namedArgs, args[i])
 	}
 	if q.lama.Tx != nil {
 		return q.lama.Tx.Get(dest, stm, namedArgs...)
@@ -388,7 +389,7 @@ func (q *Query) First(dest interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		for k, _ := range keys {
+		for k := range keys {
 			q.orderBy = append(q.orderBy, k)
 		}
 	}
@@ -416,7 +417,7 @@ func (q *Query) Last(dest interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		for k, _ := range keys {
+		for k := range keys {
 			q.orderBy = append(q.orderBy, k+" desc ")
 		}
 	}
@@ -542,8 +543,8 @@ func (q *Query) Save(entity interface{}) (err error) {
 		return err
 	}
 	q.setValues(entity)
-	for k, _ := range q.values {
-		for a, _ := range keys {
+	for k:= range q.values {
+		for a := range keys {
 			if a == k {
 				delete(q.values, k) //delete primary keys
 			}
@@ -558,8 +559,8 @@ func (q *Query) Save(entity interface{}) (err error) {
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
-		for _, b := range args {
-			ar = append(ar, b)
+		for i := range args {
+			ar = append(ar, args[i])
 		}
 	}
 	//this function must be save and rollback if have private transaction
@@ -642,8 +643,8 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
-		for _, b := range args {
-			ar = append(ar, b)
+		for i := range args {
+			ar = append(ar, args[i])
 		}
 	}
 	//this function must be save and rollback if have private transaction
@@ -707,8 +708,8 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
-		for _, b := range args {
-			ar = append(ar, b)
+		for i:= range args {
+			ar = append(ar, args[i])
 		}
 	}
 	if q.lama.Tx != nil {
@@ -752,8 +753,8 @@ func (q *Query) Add(entity interface{}) (err error) {
 	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
-	for _, b := range args {
-		ar = append(ar, b)
+	for i:= range args {
+		ar = append(ar, args[i])
 	}
 	if q.lama.Tx != nil {
 		r, err := q.lama.Tx.Exec(stm, ar...)

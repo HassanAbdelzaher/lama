@@ -134,8 +134,8 @@ func Map(data interface{}, mapper func(interface{}) interface{}) []interface{} {
 	}
 	_data := InterfaceSlice(data)
 	rs := make([]interface{}, len(_data))
-	for k, v := range _data {
-		rs[k] = mapper(v)
+	for k := range _data {
+		rs[k] = mapper(_data[k])
 	}
 	return rs
 }
@@ -146,10 +146,10 @@ func Filter(data interface{}, comparer func(interface{}) bool) []interface{} {
 	}
 	_data := InterfaceSlice(data)
 	rs := make([]interface{}, 0)
-	for _, v := range _data {
-		isMatch := comparer(v)
+	for i := range _data {
+		isMatch := comparer(_data[i])
 		if isMatch {
-			rs = append(rs, v)
+			rs = append(rs, _data[i])
 		}
 	}
 	return rs
@@ -198,7 +198,7 @@ func appendToMap(dest map[string]interface{}, src map[string]interface{}) {
 	if src == nil {
 		return
 	}
-	for k, v := range src {
-		dest[k] = v
+	for k := range src {
+		dest[k] = src[k]
 	}
 }
