@@ -13,6 +13,11 @@ import (
 	"github.com/HassanAbdelzaher/lama/structs"
 )
 
+type Having struct {
+	Key  string
+	Args []sql.NamedArg
+}
+
 type ZeroValueType string
 
 type Query struct {
@@ -34,6 +39,7 @@ type Query struct {
 	debug                  bool
 	havePrivateTransaction bool
 	lama                   *Lama
+	havings                []Having
 }
 
 func (q *Query) Debug(dbg bool) *Query {
@@ -157,6 +163,20 @@ func (q *Query) OrderBy(by ...string) *Query {
 	q.orderBy = append(q.orderBy, by...)
 	return q
 }
+func (q *Query) GroupBy(by ...string) *Query {
+	if q.groupBy == nil {
+		q.groupBy = make([]string, 0)
+	}
+	q.groupBy = append(q.groupBy, by...)
+	return q
+}
+func (q *Query) Having(expr string, args ...sql.NamedArg) *Query {
+	if q.havings == nil {
+		q.havings = make([]Having, 0)
+	}
+	q.havings = append(q.havings, Having{Key: expr, Args: args})
+	return q
+}
 func (q *Query) Limit(limit int) *Query {
 	if limit > 0 {
 		q.limit = &limit
@@ -178,6 +198,7 @@ func (q *Query) Select(cols ...string) *Query {
 func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	q.columns = make([]string, 0)
 	if structs.IsStruct(str) {
+<<<<<<< HEAD
 		mp:=structs.New(str,structs.MapOptions{
 			SkipZeroValue: false,
 			UseFieldName:  false,
@@ -188,6 +209,10 @@ func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query
 		for idx := range mp {
 			q.columns = append(q.columns, idx)
 			/*v:=structs.Fields(str)[idx]
+=======
+		for idx := range structs.Fields(str) {
+			v := structs.Fields(str)[idx]
+>>>>>>> 2332b241135a18ba63ee379dbc4cccaf32fe97dc
 			tag := v.Tag("db")
 			name := v.Name()
 			if tag != "" {
@@ -364,7 +389,7 @@ func (q *Query) Get(dest interface{}) (err error) {
 	slq := SelectQuery{Query: *q}
 	stm, args := slq.Build(q.lama.dialect)
 	namedArgs := make([]interface{}, 0)
-	for i:= range args {
+	for i := range args {
 		namedArgs = append(namedArgs, args[i])
 	}
 	if q.lama.Tx != nil {
@@ -376,7 +401,6 @@ func (q *Query) Get(dest interface{}) (err error) {
 	/*if err == sql.ErrNoRows {
 		return nil // it will make dangerous effect
 	}*/
-	return err
 }
 
 func (q *Query) First(dest interface{}) (err error) {
@@ -556,7 +580,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 		return err
 	}
 	q.setValues(entity)
-	for k:= range q.values {
+	for k := range q.values {
 		for a := range keys {
 			if a == k {
 				delete(q.values, k) //delete primary keys
@@ -721,7 +745,7 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
 	if args != nil {
-		for i:= range args {
+		for i := range args {
 			ar = append(ar, args[i])
 		}
 	}
@@ -742,6 +766,7 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 	log.Println("rows effected:", eff)
 	return err
 }
+
 //Add insert new entity into the database
 func (q *Query) Add(entity interface{}) (err error) {
 	defer func() {
@@ -766,7 +791,7 @@ func (q *Query) Add(entity interface{}) (err error) {
 	stm, args := slq.Build(q.lama.dialect)
 	var eff int64 = 0
 	ar := make([]interface{}, 0)
-	for i:= range args {
+	for i := range args {
 		ar = append(ar, args[i])
 	}
 	if q.lama.Tx != nil {
@@ -785,11 +810,19 @@ func (q *Query) Add(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
+<<<<<<< HEAD
 //setModel set the model used to find tablename and  generate column names
 func (q *Query) setModel(_dest interface{}) {
 	elm:=_dest
 	if reflect.TypeOf(elm).Kind() == reflect.Ptr {
 		elm=reflect.ValueOf(elm).Elem().Interface()
+=======
+
+//setModel set the model used to find tablename and  generate colum names
+func (q *Query) setModel(dest interface{}) {
+	if reflect.TypeOf(dest).Kind() == reflect.Struct {
+		q.model = dest
+>>>>>>> 2332b241135a18ba63ee379dbc4cccaf32fe97dc
 	}
 	ekind:=reflect.TypeOf(elm).Kind()
 	if ekind == reflect.Struct {
