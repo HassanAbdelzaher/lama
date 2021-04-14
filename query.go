@@ -39,6 +39,7 @@ type Query struct {
 	havePrivateTransaction bool
 	lama                   *Lama
 	havings                []Having
+	selectedZeroValues []string
 }
 
 func (q *Query) Debug(dbg bool) *Query {
@@ -162,6 +163,13 @@ func (q *Query) OrderBy(by ...string) *Query {
 	q.orderBy = append(q.orderBy, by...)
 	return q
 }
+func (q *Query) SelectedZeroValues(col ...string) *Query {
+	if q.selectedZeroValues == nil {
+		q.selectedZeroValues = make([]string, 0)
+	}
+	q.selectedZeroValues = append(q.selectedZeroValues, col...)
+	return q
+}
 func (q *Query) GroupBy(by ...string) *Query {
 	if q.groupBy == nil {
 		q.groupBy = make([]string, 0)
@@ -269,7 +277,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		return q.whereMap(values)
 	}
 	if reflect.TypeOf(query).Kind() == reflect.Struct || reflect.TypeOf(query).Kind() == reflect.Ptr {
-		values, err := StructToMap(query, true, false, true, true)
+		values, err := StructToMap(query, true, false, true, true,q.selectedZeroValues)
 		if err != nil {
 			q.addError(err)
 			return q

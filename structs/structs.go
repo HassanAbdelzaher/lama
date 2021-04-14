@@ -3,6 +3,7 @@ package structs
 
 import (
 	"reflect"
+	"strings"
 )
 
 
@@ -12,6 +13,19 @@ type MapOptions struct {
 	SkipUnTaged bool
 	SkipComputed bool
 	Flatten bool
+	SelectedZeroValues []string
+}
+
+func (o *MapOptions) IncludeIfZero(k string)  bool{
+	if o.SelectedZeroValues==nil{
+		return false
+	}
+	for _,l:=range o.SelectedZeroValues{
+		if strings.ToUpper(l)==strings.ToUpper(k){
+			return true
+		}
+	}
+	return false
 }
 // Struct encapsulates a struct type to provide several high level functions
 // around the struct.
@@ -124,7 +138,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 			zero := reflect.Zero(val.Type()).Interface()
 			current := val.Interface()
 
-			if reflect.DeepEqual(current, zero) {
+			if reflect.DeepEqual(current, zero) && !s.options.IncludeIfZero(name) {
 				continue
 			}
 		}

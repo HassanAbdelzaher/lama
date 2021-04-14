@@ -36,13 +36,14 @@ func GetTableName(inx interface{}) string {
 	}
 	return tbleName
 }
-func StructToMap(inx interface{}, skipZeroValue bool, skipComputedColumn bool, useFieldName bool,SkipUnTaged bool) (map[string]interface{}, error) {
+func StructToMap(inx interface{}, skipZeroValue bool, skipComputedColumn bool, useFieldName bool,SkipUnTaged bool,selectedZeroValues []string) (map[string]interface{}, error) {
 	mpValues:=structs.New(inx,structs.MapOptions{
 		SkipZeroValue: skipZeroValue,
 		UseFieldName:  useFieldName,
 		SkipUnTaged:   SkipUnTaged,
 		SkipComputed:  skipComputedColumn,
 		Flatten:       true,
+		SelectedZeroValues:selectedZeroValues,
 	}).Map()
 	return mpValues,nil;
 }
