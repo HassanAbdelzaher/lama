@@ -145,7 +145,7 @@ func (q *Query) setValues(val interface{}) *Query {
 		return q
 	}
 	if reflect.TypeOf(val).Kind() == reflect.Struct || reflect.TypeOf(val).Kind() == reflect.Ptr {
-		values, err := StructToMap(val, false, true, false, false)
+		values, err := StructToMap(val, false, true, false, false,q.selectedZeroValues)
 		if err != nil {
 			q.addError(err)
 			return q
