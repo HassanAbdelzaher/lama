@@ -108,7 +108,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 			isSubStruct = true
 		}
 		var finalVal interface{}
-		tag,_ := TagExtractor(field.Tag.Get(s.TagName))
+		tag:= TagExtractor(field.Tag.Get(s.TagName))
 		if(!isSubStruct && (tag==nil || tag.ColumnName=="" ) && s.options.SkipUnTaged){
 			continue
 		}

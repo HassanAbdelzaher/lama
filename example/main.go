@@ -62,15 +62,17 @@ func testNested(){
 func do(id string) {
 	log.Println("start " + id)
 	db:= conn
-	var bt []BILL_ITEM2
-    err:=db.Where(BILL_ITEM2{BILL_ITEM{CUSTKEY:"100021148"}}).Find(&bt)
+	var bt BILL_ITEM2
+    err:=db.DB.Get(&bt,"select top 1 custkey,water_AMT,CYCLE_ID from bill_items where 1=0")
     if err!=nil{
     	log.Println(err)
 		return
 	}
-	log.Println(len(bt))
-    for _,ro:=range bt{
-    	log.Println(ro.CUSTKEY,*ro.CYCLE_ID,*ro.WATER_AMT)
+	ro:=bt
+	if ro.CYCLE_ID!=nil && ro.WATER_AMT!=nil{
+		log.Println(ro.CUSTKEY,*ro.CYCLE_ID,*ro.WATER_AMT)
+	}else {
+		log.Println(ro.CUSTKEY)
 	}
 	return
 

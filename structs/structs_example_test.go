@@ -18,7 +18,7 @@ func ExampleNew() {
 		Enabled: true,
 	}
 
-	s := New(server)
+	s := New(server, MapOptions{})
 
 	fmt.Printf("Name        : %v\n", s.Name())
 	fmt.Printf("Values      : %v\n", s.Values())
@@ -43,7 +43,7 @@ func ExampleMap() {
 		Enabled: true,
 	}
 
-	m := Map(s)
+	m := Map(s, MapOptions{})
 
 	fmt.Printf("%#v\n", m["Name"])
 	fmt.Printf("%#v\n", m["ID"])
@@ -68,7 +68,7 @@ func ExampleMap_tags() {
 		ID:   789012,
 	}
 
-	m := Map(s)
+	m := Map(s, MapOptions{})
 
 	// access them by the custom tags defined above
 	fmt.Printf("%#v\n", m["server_name"])
@@ -99,7 +99,7 @@ func ExampleMap_omitNested() {
 		Time: t,
 	}
 
-	m := Map(s)
+	m := Map(s, MapOptions{})
 
 	// access them by the custom tags defined above
 	fmt.Printf("%v\n", m["server_name"])
@@ -125,7 +125,7 @@ func ExampleMap_omitEmpty() {
 		Location: "Tokyo",
 	}
 
-	m := Map(s)
+	m := Map(s, MapOptions{})
 
 	// map contains only the Location field
 	fmt.Printf("%v\n", m)
@@ -146,7 +146,7 @@ func ExampleValues() {
 		Enabled: false,
 	}
 
-	m := Values(s)
+	m := Values(s, MapOptions{})
 
 	fmt.Printf("Values: %+v\n", m)
 	// Output:
@@ -167,7 +167,7 @@ func ExampleValues_omitEmpty() {
 		Location: "Ankara",
 	}
 
-	m := Values(s)
+	m := Values(s, MapOptions{})
 
 	// values contains only the Location field
 	fmt.Printf("Values: %+v\n", m)
@@ -197,7 +197,7 @@ func ExampleValues_tags() {
 
 	// Let get all values from the struct s. Note that we don't include values
 	// from the Location field
-	m := Values(s)
+	m := Values(s, MapOptions{})
 
 	fmt.Printf("Values: %+v\n", m)
 	// Output:
@@ -217,7 +217,7 @@ func ExampleFields() {
 		Number:       1234567,
 	}
 
-	fields := Fields(s)
+	fields := Fields(s, MapOptions{})
 
 	for i, field := range fields {
 		fmt.Printf("[%d] %+v\n", i, field.Name())
@@ -248,7 +248,7 @@ func ExampleFields_nested() {
 	}
 
 	// Let's get all fields from the struct s.
-	fields := Fields(s)
+	fields := Fields(s, MapOptions{})
 
 	for _, field := range fields {
 		if field.Name() == "Person" {
@@ -279,7 +279,7 @@ func ExampleField() {
 	}
 
 	// Create a new Struct type
-	s := New(access)
+	s := New(access, MapOptions{})
 
 	// Get the Field type for "Person" field
 	p := s.Field("Person")

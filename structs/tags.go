@@ -60,13 +60,13 @@ func FieldTagExtractor(entity interface{}, fieldName string) (*GormTag, error) {
 			return nil, errors.New("field not found:" + fieldName)
 		}
 		tag := fld.Tag.Get(TagName)
-		return TagExtractor(tag)
+		return TagExtractor(tag),nil
 	} else {
 		return nil, errors.New("invalied argument:can not convert map")
 	}
 }
 
-func TagExtractor(tag string) (*GormTag, error) {
+func TagExtractor(tag string) *GormTag {
 	gTag := GormTag{}
 	if len(tag) > 0 {
 		parts := strings.Split(tag, `;`)
@@ -109,10 +109,10 @@ func TagExtractor(tag string) (*GormTag, error) {
 		}
 	}
 
-	return &gTag, nil
+	return &gTag
 }
 
-func primaryKey(entity interface{}) (map[string]interface{}, error) {
+func PrimaryKey(entity interface{}) (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
 	if entity == nil {
 		return ret, nil
@@ -138,7 +138,7 @@ func primaryKey(entity interface{}) (map[string]interface{}, error) {
 	} else if typ.Kind() == reflect.Ptr {
 		strct := reflect.ValueOf(entity).Elem().Interface()
 		if reflect.TypeOf(strct).Kind() == reflect.Struct {
-			return primaryKey(strct)
+			return PrimaryKey(strct)
 		} else {
 			return nil, errors.New("can not found primarykey for non struct types")
 		}

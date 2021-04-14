@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	//"github.com/fatih/structs"
 	"github.com/HassanAbdelzaher/lama/structs"
 )
 
@@ -413,7 +412,7 @@ func (q *Query) First(dest interface{}) (err error) {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	if len(q.orderBy) == 0 {
-		keys, err := primaryKey(dest)
+		keys, err := structs.PrimaryKey(dest)
 		if err != nil {
 			return err
 		}
@@ -445,7 +444,7 @@ func (q *Query) Last(dest interface{}) (err error) {
 		return errors.New("more than one error occured:" + q.errors[0].Error())
 	}
 	if len(q.orderBy) == 0 {
-		keys, err := primaryKey(dest)
+		keys, err := structs.PrimaryKey(dest)
 		if err != nil {
 			return err
 		}
@@ -570,7 +569,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 	if q.model == nil {
 		q.setModel(entity)
 	}
-	keys, err := primaryKey(entity)
+	keys, err := structs.PrimaryKey(entity)
 	if err != nil {
 		return err
 	}
@@ -662,7 +661,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	if q.model == nil {
 		q.setModel(entity)
 	}
-	keys, err := primaryKey(entity)
+	keys, err := structs.PrimaryKey(entity)
 	if err != nil {
 		return err
 	}

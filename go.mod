@@ -7,7 +7,6 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/godror/godror v0.19.3
 	github.com/guregu/null v4.0.0+incompatible
-	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.1.1
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

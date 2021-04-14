@@ -2,10 +2,11 @@ package lama
 
 import (
 	"database/sql"
+	"github.com/HassanAbdelzaher/lama/sqlx"
 	"sync"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	//"github.com/HassanAbdelzaher/lama/sqlx"
 )
 
 type Lama struct {
