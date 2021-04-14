@@ -17,6 +17,10 @@ type Lama struct {
 	sync.Mutex
 }
 
+type LamaTx struct{
+	*Lama
+}
+
 func Connect(driver string, connstr string) (*Lama, error) {
 	//cnsStr := fmt.Sprintf("server=%s;database=%s;user=%s;password=%s", config.AppConfig.Server, config.AppConfig.Database, config.AppConfig.User, config.AppConfig.Passeord)
 	if driver=="oracle" {
@@ -135,22 +139,22 @@ func (l *Lama) Close() {
 	}
 }
 
-func (l *Lama) Begin() (*Lama, error) {
+func (l *Lama) Begin() (*LamaTx, error) {
 	l.Lock()
 	defer l.Unlock()
 	tx, err := l.DB.Beginx()
 	if err != nil {
-		return l, err
+		return &LamaTx{l}, err
 	}
-	return &Lama{
+	return &LamaTx{&Lama{
 		Debug: l.Debug,
 		DB:    l.DB,
 		Tx:    tx,
 		dialect:l.dialect,
-	}, nil
+	}}, nil
 }
 
-func (l *Lama) Commit() error {
+func (l *LamaTx) Commit() error {
 	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()
@@ -164,7 +168,7 @@ func (l *Lama) Commit() error {
 	return nil
 }
 
-func (l *Lama) Rollback() error {
+func (l *LamaTx) Rollback() error {
 	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()

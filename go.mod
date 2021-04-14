@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20200620013148-b91950f658ec
-	github.com/fatih/structs v1.1.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/godror/godror v0.19.3
 	github.com/guregu/null v4.0.0+incompatible

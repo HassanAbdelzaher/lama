@@ -1,20 +1,20 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/HassanAbdelzaher/lama/structs"
 	"log"
 	"time"
 
 	"github.com/HassanAbdelzaher/lama"
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/HassanAbdelzaher/lama/dialects/mssql"
 )
 
 var conn *lama.Lama
 
 func init() {
 	var err error
-	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s", "localhost", "fayoum", "sa", "hcs@mas")
+	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "giza", "sa", "hcs@mas")
 	conn, err = lama.Connect("sqlserver", cnsStr)
 	if err != nil {
 		log.Println(err)
@@ -23,76 +23,55 @@ func init() {
 	}
 }
 func main() {
-	do("sync")
+	do("")
 	time.Sleep(2 * time.Second)
+}
+
+type Car struct{
+	Name string
+}
+
+type Skoda struct{
+	*Car
+	Addrees string
+}
+
+func testNested(){
+	car :=Car{Name:"car"}
+	skoda :=Skoda{Car:&car}
+	skoda.Name="skoda"
+	skoda.Addrees="adddd"
+	m := structs.Map(&car,structs.MapOptions{
+		SkipZeroValue: false,
+		UseFieldName:  false,
+		SkipUnTaged:   false,
+		SkipComputed:  false,
+		Flatten:       false,
+	})
+	m2 := structs.Map(&skoda,structs.MapOptions{
+		SkipZeroValue: false,
+		UseFieldName:  false,
+		SkipUnTaged:   false,
+		SkipComputed:  false,
+		Flatten:       false,
+	})
+	log.Println(m)
+	log.Println(m2)
 }
 
 func do(id string) {
 	log.Println("start " + id)
-	db, err := conn.Begin()
-    count,err:=db.Model(Test{}).Where(`1=3`).Sum("ID")
+	db:= conn
+	var bt []BILL_ITEM2
+    err:=db.Where(BILL_ITEM2{BILL_ITEM{CUSTKEY:"100021148"}}).Find(&bt)
     if err!=nil{
     	log.Println(err)
 		return
 	}
-	log.Println(*count)
+	log.Println(len(bt))
+    for _,ro:=range bt{
+    	log.Println(ro.CUSTKEY,*ro.CYCLE_ID,*ro.WATER_AMT)
+	}
 	return
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer db.Rollback()
 
-	///Test Count
-	log.Println(err,count)
-	name:="hassan"
-//  add
-    err=db.Add(Test{
-		Ix:      1,
-		Name:    &name,
-		Address: nil,
-		Tel:     nil,
-		Date:    nil,
-		Time:    nil,
-		X_y:     nil,
-		Az_Nm:   nil,
-		Cdf:     nil,
-	})
-    log.Println(err)
-    db.Commit()
-	noe := time.Now()
-	for i := 0; i < 1; i++ {
-		s := "lama"
-		t := Test{}
-		t.Ix = int32(i) + int32(200)
-		t.Name = &s
-		t.Date = &noe
-		t.Time = &noe
-		err := db.Add(&t)
-		if err != nil {
-			log.Println(err)
-			db.Tx.Rollback()
-			break
-		}
-	}
-	var cnt int
-	//err = conn.Model(Test{}).Count("*").Get(&cnt)
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Println("Count:", cnt)
-	}
-	db.Commit()
-	log.Println("did:" + id)
-	t2 := Test{}
-	err = conn.Where("id>:id", sql.NamedArg{Name: `id`, Value: 100}).Last(&t2)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(t2)
-	addr := "shrook"
-	t2.Address = &addr
-	err = conn.Save(&t2)
-	if err != nil {
-		log.Println(err)
-	}
 }

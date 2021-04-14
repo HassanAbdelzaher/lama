@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/structs"
+	//"github.com/fatih/structs"
+	"github.com/HassanAbdelzaher/lama/structs"
 )
 
 type ZeroValueType string
@@ -138,7 +139,7 @@ func (q *Query) setValues(val interface{}) *Query {
 		return q
 	}
 	if reflect.TypeOf(val).Kind() == reflect.Struct || reflect.TypeOf(val).Kind() == reflect.Ptr {
-		values, err := StructToMap(val, false, true, false)
+		values, err := StructToMap(val, false, true, false,false)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -177,8 +178,16 @@ func (q *Query) Select(cols ...string) *Query {
 func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	q.columns = make([]string, 0)
 	if structs.IsStruct(str) {
-		for idx := range structs.Fields(str) {
-			v:=structs.Fields(str)[idx]
+		mp:=structs.New(str,structs.MapOptions{
+			SkipZeroValue: false,
+			UseFieldName:  false,
+			SkipUnTaged:   false,
+			SkipComputed:  false,
+			Flatten:       true,
+		}).Map()
+		for idx := range mp {
+			q.columns = append(q.columns, idx)
+			/*v:=structs.Fields(str)[idx]
 			tag := v.Tag("db")
 			name := v.Name()
 			if tag != "" {
@@ -187,7 +196,7 @@ func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query
 				if !skipUnTaged {
 					q.columns = append(q.columns, name)
 				}
-			}
+			}*/
 		}
 	} else {
 		mp, isMap := str.(map[string]interface{})
@@ -205,7 +214,7 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 	}
 	if structs.IsStruct(str) {
 		nCols := make([]string, 0)
-		fields := Map(structs.Fields(str), func(i interface{}) interface{} {
+		fields := Map(structs.Fields(str,structs.MapOptions{}), func(i interface{}) interface{} {
 			f := i.(*structs.Field)
 			return f.Tag("db")
 		})
@@ -241,7 +250,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		return q.whereMap(values)
 	}
 	if reflect.TypeOf(query).Kind() == reflect.Struct || reflect.TypeOf(query).Kind() == reflect.Ptr {
-		values, err := StructToMap(query, true, false, true)
+		values, err := StructToMap(query, true, false, true,true)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -388,6 +397,10 @@ func (q *Query) First(dest interface{}) (err error) {
 		keys, err := primaryKey(dest)
 		if err != nil {
 			return err
+		}
+
+		if len(keys)==0{
+			q.orderBy = append(q.orderBy, "1")
 		}
 		for k := range keys {
 			q.orderBy = append(q.orderBy, k)
@@ -772,17 +785,21 @@ func (q *Query) Add(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
-//setModel set the model used to find tablename and  generate colum names
-func (q *Query) setModel(dest interface{}) {
-	if reflect.TypeOf(dest).Kind() == reflect.Struct {
-		q.model = dest
+//setModel set the model used to find tablename and  generate column names
+func (q *Query) setModel(_dest interface{}) {
+	elm:=_dest
+	if reflect.TypeOf(elm).Kind() == reflect.Ptr {
+		elm=reflect.ValueOf(elm).Elem().Interface()
 	}
-	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
-		elm := reflect.ValueOf(dest).Elem().Interface()
-		if reflect.TypeOf(elm).Kind() == reflect.Struct {
-			q.model = elm
-		}
+	ekind:=reflect.TypeOf(elm).Kind()
+	if ekind == reflect.Struct {
+		q.model = elm
+		return
 	}
+	/*if ekind == reflect.Slice {
+		m:=reflect.New(reflect.TypeOf(elm).Elem()).Elem().Interface()
+		q.model =m
+	}*/
 }
 
 /*func (q *Query) Finalize(commit bool) error {
