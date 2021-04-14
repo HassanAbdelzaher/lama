@@ -145,7 +145,7 @@ func (q *Query) setValues(val interface{}) *Query {
 		return q
 	}
 	if reflect.TypeOf(val).Kind() == reflect.Struct || reflect.TypeOf(val).Kind() == reflect.Ptr {
-		values, err := StructToMap(val, false, true, false,false)
+		values, err := StructToMap(val, false, true, false, false)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -198,8 +198,7 @@ func (q *Query) Select(cols ...string) *Query {
 func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query {
 	q.columns = make([]string, 0)
 	if structs.IsStruct(str) {
-<<<<<<< HEAD
-		mp:=structs.New(str,structs.MapOptions{
+		mp := structs.New(str, structs.MapOptions{
 			SkipZeroValue: false,
 			UseFieldName:  false,
 			SkipUnTaged:   false,
@@ -209,10 +208,6 @@ func (q *Query) ColumnsFromStructOrMap(str interface{}, skipUnTaged bool) *Query
 		for idx := range mp {
 			q.columns = append(q.columns, idx)
 			/*v:=structs.Fields(str)[idx]
-=======
-		for idx := range structs.Fields(str) {
-			v := structs.Fields(str)[idx]
->>>>>>> 2332b241135a18ba63ee379dbc4cccaf32fe97dc
 			tag := v.Tag("db")
 			name := v.Name()
 			if tag != "" {
@@ -239,7 +234,7 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 	}
 	if structs.IsStruct(str) {
 		nCols := make([]string, 0)
-		fields := Map(structs.Fields(str,structs.MapOptions{}), func(i interface{}) interface{} {
+		fields := Map(structs.Fields(str, structs.MapOptions{}), func(i interface{}) interface{} {
 			f := i.(*structs.Field)
 			return f.Tag("db")
 		})
@@ -275,7 +270,7 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		return q.whereMap(values)
 	}
 	if reflect.TypeOf(query).Kind() == reflect.Struct || reflect.TypeOf(query).Kind() == reflect.Ptr {
-		values, err := StructToMap(query, true, false, true,true)
+		values, err := StructToMap(query, true, false, true, true)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -423,7 +418,7 @@ func (q *Query) First(dest interface{}) (err error) {
 			return err
 		}
 
-		if len(keys)==0{
+		if len(keys) == 0 {
 			q.orderBy = append(q.orderBy, "1")
 		}
 		for k := range keys {
@@ -545,7 +540,7 @@ func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 
 //Save update the holl entity
 func (q *Query) Save(entity interface{}) (err error) {
-	var tx *Lama
+	var tx *LamaTx
 	defer func() {
 		if tx != nil {
 			if err != nil {
@@ -637,7 +632,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 
 //Delere entity from database
 func (q *Query) Delete(entity interface{}) (err error) {
-	var tx *Lama
+	var tx *LamaTx
 	defer func() {
 		if tx != nil {
 			if err != nil {
@@ -810,21 +805,14 @@ func (q *Query) Add(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
-<<<<<<< HEAD
+
 //setModel set the model used to find tablename and  generate column names
 func (q *Query) setModel(_dest interface{}) {
-	elm:=_dest
+	elm := _dest
 	if reflect.TypeOf(elm).Kind() == reflect.Ptr {
-		elm=reflect.ValueOf(elm).Elem().Interface()
-=======
-
-//setModel set the model used to find tablename and  generate colum names
-func (q *Query) setModel(dest interface{}) {
-	if reflect.TypeOf(dest).Kind() == reflect.Struct {
-		q.model = dest
->>>>>>> 2332b241135a18ba63ee379dbc4cccaf32fe97dc
+		elm = reflect.ValueOf(elm).Elem().Interface()
 	}
-	ekind:=reflect.TypeOf(elm).Kind()
+	ekind := reflect.TypeOf(elm).Kind()
 	if ekind == reflect.Struct {
 		q.model = elm
 		return

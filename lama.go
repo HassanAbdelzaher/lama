@@ -17,7 +17,7 @@ type Lama struct {
 	sync.Mutex
 }
 
-type LamaTx struct{
+type LamaTx struct {
 	*Lama
 }
 
@@ -152,21 +152,12 @@ func (l *Lama) Begin() (*LamaTx, error) {
 	if err != nil {
 		return &LamaTx{l}, err
 	}
-<<<<<<< HEAD
 	return &LamaTx{&Lama{
-		Debug: l.Debug,
-		DB:    l.DB,
-		Tx:    tx,
-		dialect:l.dialect,
-	}}, nil
-=======
-	return &Lama{
 		Debug:   l.Debug,
 		DB:      l.DB,
 		Tx:      tx,
 		dialect: l.dialect,
-	}, nil
->>>>>>> 2332b241135a18ba63ee379dbc4cccaf32fe97dc
+	}}, nil
 }
 
 func (l *LamaTx) Commit() error {
