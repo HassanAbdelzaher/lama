@@ -1,3 +1,3 @@
 package lama
 
-const VERSION = "1.22.4"
+const VERSION = "1.30.0"
