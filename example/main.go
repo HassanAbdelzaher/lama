@@ -23,24 +23,33 @@ func init() {
 	}
 }
 func main() {
+	//testNested()
 	do("")
 	time.Sleep(2 * time.Second)
 }
-
+type Tx time.Time
 type Car struct{
 	Name string
+	Stamp *time.Time
 }
 
 type Skoda struct{
 	*Car
 	Addrees string
+	Sx *Tx
+	Create time.Time
 }
 
 func testNested(){
+	now:=time.Now()
 	car :=Car{Name:"car"}
 	skoda :=Skoda{Car:&car}
 	skoda.Name="skoda"
 	skoda.Addrees="adddd"
+	skoda.Create=now
+	skoda.Stamp=&now
+	var xx Tx =Tx(now)
+	skoda.Sx=&xx
 	m := structs.Map(&car,structs.MapOptions{
 		SkipZeroValue: false,
 		UseFieldName:  false,
@@ -62,18 +71,16 @@ func testNested(){
 func do(id string) {
 	log.Println("start " + id)
 	db:= conn
-	var bt BILL_ITEM2
-    err:=db.DB.Get(&bt,"select top 1 custkey,water_AMT,CYCLE_ID from bill_items where 1=0")
+	var bt []*Tariffs2
+    err:=db.Model(Tariffs2{}).Find(&bt)
     if err!=nil{
     	log.Println(err)
 		return
 	}
-	ro:=bt
-	if ro.CYCLE_ID!=nil && ro.WATER_AMT!=nil{
-		log.Println(ro.CUSTKEY,*ro.CYCLE_ID,*ro.WATER_AMT)
-	}else {
-		log.Println(ro.CUSTKEY)
+	for _,b:=range bt{
+		log.Println(b.TarrifID,b.TariffCode)
 	}
+	log.Println(len(bt))
 	return
 
 }

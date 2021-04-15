@@ -160,9 +160,9 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 		isMap:=false
 		switch reflect.TypeOf(finalVal).Kind() {
 			case reflect.Map:
-			isMap = true
+			isMap = true //hassan
 		}
-		if isMap && isSubStruct && (s.options.Flatten) {
+		if isMap&&isSubStruct && (s.options.Flatten) {
 
 			for k := range finalVal.(map[string]interface{}) {
 				out[k] = finalVal.(map[string]interface{})[k]

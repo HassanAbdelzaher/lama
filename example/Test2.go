@@ -1,5 +1,5 @@
 package main
 
-type BILL_ITEM2 struct {
-	BILL_ITEM
+type Tariffs2 struct {
+	Tariffs
 }
