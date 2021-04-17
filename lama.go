@@ -12,13 +12,13 @@ import (
 type Lama struct {
 	//query Query
 	DB      *sqlx.DB
-	Tx      *sqlx.Tx
 	Debug   bool
 	dialect Dialect
 	sync.Mutex
 }
 
 type LamaTx struct {
+	Tx      *sqlx.Tx
 	*Lama
 }
 
@@ -151,12 +151,11 @@ func (l *Lama) Begin() (*LamaTx, error) {
 	defer l.Unlock()
 	tx, err := l.DB.Beginx()
 	if err != nil {
-		return &LamaTx{l}, err
+		return &LamaTx{Lama:l}, err
 	}
-	return &LamaTx{&Lama{
+	return &LamaTx{Tx:tx,Lama:&Lama{
 		Debug:   l.Debug,
 		DB:      l.DB,
-		Tx:      tx,
 		dialect: l.dialect,
 	}}, nil
 }
@@ -165,9 +164,6 @@ func (l *LamaTx) Commit() error {
 	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()
-		if l.Tx == nil {
-			return nil
-		}
 		err := l.Tx.Commit()
 		l.Tx = nil
 		return err
@@ -179,9 +175,6 @@ func (l *LamaTx) Rollback() error {
 	if l.Tx != nil {
 		l.Lock()
 		defer l.Unlock()
-		if l.Tx == nil {
-			return nil
-		}
 		err := l.Tx.Rollback()
 		l.Tx = nil
 		return err
