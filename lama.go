@@ -11,6 +11,7 @@ import (
 
 type Lama struct {
 	//query Query
+	Tx      *sqlx.Tx
 	DB      *sqlx.DB
 	Debug   bool
 	dialect Dialect
@@ -18,7 +19,6 @@ type Lama struct {
 }
 
 type LamaTx struct {
-	Tx      *sqlx.Tx
 	*Lama
 }
 
@@ -153,10 +153,11 @@ func (l *Lama) Begin() (*LamaTx, error) {
 	if err != nil {
 		return &LamaTx{Lama:l}, err
 	}
-	return &LamaTx{Tx:tx,Lama:&Lama{
+	return &LamaTx{Lama:&Lama{
 		Debug:   l.Debug,
 		DB:      l.DB,
 		dialect: l.dialect,
+		Tx:tx,
 	}}, nil
 }
 
