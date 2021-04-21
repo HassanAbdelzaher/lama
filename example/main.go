@@ -24,7 +24,7 @@ func init() {
 }
 func main() {
 	//testNested()
-	do("")
+	testCase("")
 	time.Sleep(2 * time.Second)
 }
 type Tx time.Time
@@ -68,7 +68,7 @@ func testNested(){
 	log.Println(m2)
 }
 
-func do(id string) {
+func testEmbded(id string) {
 	log.Println("start " + id)
 	db:= conn
 	var bt []*Tariffs2
@@ -82,5 +82,24 @@ func do(id string) {
 	}
 	log.Println(len(bt))
 	return
+
+}
+
+
+func testCase(id string) {
+log.Println("start " + id)
+db:= conn
+query:="select TARRIF_id from TARIFFS"
+var bt []*Tariffs2
+err:=db.DB.Select(&bt,query)
+if err!=nil{
+log.Println(err)
+return
+}
+for _,b:=range bt{
+log.Println(b.TarrifID,b.TariffCode)
+}
+log.Println(len(bt))
+return
 
 }
