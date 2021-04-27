@@ -34,9 +34,8 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	if err != nil {
 		return nil, err
 	}
-	DbConn.SetMaxOpenConns(2)
-	DbConn.SetMaxIdleConns(1)
-	DbConn.SetConnMaxLifetime(30 * time.Minute)
+	DbConn.SetMaxOpenConns(5);
+	DbConn.SetMaxIdleConns(1);
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
 	dialect := newDialect(driver)
 	return &Lama{

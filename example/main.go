@@ -14,7 +14,7 @@ var conn *lama.Lama
 
 func init() {
 	var err error
-	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "giza", "sa", "hcs@mas")
+	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "sharqia", "sa", "hcs@mas")
 	conn, err = lama.Connect("sqlserver", cnsStr)
 	if err != nil {
 		log.Println(err)
@@ -87,19 +87,33 @@ func testEmbded(id string) {
 
 
 func testCase(id string) {
-log.Println("start " + id)
-db:= conn
-query:="select TARRIF_id from TARIFFS"
-var bt []*Tariffs2
-err:=db.DB.Select(&bt,query)
-if err!=nil{
-log.Println(err)
-return
-}
-for _,b:=range bt{
-log.Println(b.TarrifID,b.TariffCode)
-}
-log.Println(len(bt))
-return
+	log.Println("start " + id)
+	db := conn
+	query := `select i.*, h.* from HAND_MH_ST2 H,HH_BCYC b,BILL_ITEMS i where  b.BILLGROUP=h.BILLGROUP and b.BOOK_NO=h.BOOK_NO_C and b.WALK_NO=h.WALK_NO_C 
+	and b.CYCLE_ID=h.CYCLE_ID
+	and (b.ISCYCLE_COMPLETED_C=0 or b.ISCYCLE_COMPLETED_C is null)
+	and b.IS_ALLOWED_C=1
+	and h.IS_COLLECTION_ROW=1
+	and h.CL_BLNCE>=0
+	and i.CUSTKEY=h.CUSTKEY
+	and i.CYCLE_ID=h.CYCLE_ID
+	and h.EMPID_C=4040111 And (CDB_HH_C=0 or CDB_HH_C is null)  order by h.billgroup,h.book_no_c,h.walk_no_c,h.cycle_id,h.SEQ_NO_C`
 
+	var bt []*HAND_MH_ST
+	err := db.DB.Select(&bt, query)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, b := range bt {
+		if(b.Cl_blnce!=nil){
+			log.Println(b.CUSTKEY,*b.Cl_blnce)
+
+		}else {
+			log.Println("missing cl_blnce")
+
+		}
+	}
+	log.Println(len(bt))
+	return
 }
