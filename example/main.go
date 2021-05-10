@@ -12,6 +12,10 @@ import (
 
 var conn *lama.Lama
 
+type S struct {
+	Con *lama.Lama
+}
+
 func init() {
 	var err error
 	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "giza", "sa", "hcs@mas")
@@ -21,10 +25,16 @@ func init() {
 	} else {
 		conn.Debug = true
 	}
+
 }
 func main() {
 	var hand Tariffs
-	err:=conn.Where(lama.StartsWith("TARIFF_CODE","0-0")).First(&hand)
+	tx,err:=conn.Begin()
+	if err!=nil{
+		log.Println(err)
+		return
+	}
+	err=tx.Lama.Where(lama.Between(conn.Dialect(),"EFFECT_DATE",time.Now().AddDate(-10,0,0),time.Now().Add(2*time.Hour))).First(&hand)
 	if err==nil{
 		err=conn.Upsert(hand)
 	}
