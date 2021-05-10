@@ -17,9 +17,9 @@ var (
 
 // Tariffs : Is Table In SQL For Model
 type Tariffs struct {
-	TarrifID    int32     `gorm:"column:TARRIF_ID;type:INT;" db:"TARRIF_ID"`
+	TarrifID    int32     `gorm:"primary_key;column:TARRIF_ID;type:INT;" db:"TARRIF_ID"`
 	TariffCode  string    `gorm:"column:TARIFF_CODE;type:NVARCHAR;size:50;" db:"TARIFF_CODE"`
-	EffectDate  time.Time `gorm:"primary_key;column:EFFECT_DATE;type:DATETIME;" db:"EFFECT_DATE"`
+	EffectDate  time.Time `gorm:"column:EFFECT_DATE;type:DATETIME;" db:"EFFECT_DATE"`
 	Description string    `gorm:"column:DESCRIPTION;type:NVARCHAR;size:250;" db:"DESCRIPTION"`
 }
 

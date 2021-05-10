@@ -14,7 +14,7 @@ var conn *lama.Lama
 
 func init() {
 	var err error
-	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "sharqia", "sa", "hcs@mas")
+	cnsStr := fmt.Sprintf("server=%s;database=%s;user id=%s;password=%s;log=63", "localhost", "giza", "sa", "hcs@mas")
 	conn, err = lama.Connect("sqlserver", cnsStr)
 	if err != nil {
 		log.Println(err)
@@ -23,9 +23,12 @@ func init() {
 	}
 }
 func main() {
-	//testNested()
-	testCase("")
-	time.Sleep(2 * time.Second)
+	var hand Tariffs
+	err:=conn.Where(lama.NotEq("TARIFF_CODE","0")).First(&hand)
+	if err==nil{
+		err=conn.Upsert(hand)
+	}
+	log.Println(err)
 }
 type Tx time.Time
 type Car struct{
