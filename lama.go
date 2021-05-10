@@ -202,6 +202,40 @@ func (l *Lama) Where(query interface{}, args ...sql.NamedArg) *Query {
 func (l *Lama) WhereOr(w ...Where) *Query {
 	return newQuery(l).WhereOr(w...)
 }
+
+func (l *Lama) In(key string,valus ...interface{}) *Query {
+	return newQuery(l).In(key,valus)
+}
+func (l *Lama) Between(key string,valu1 interface{},valu2 interface{}) *Query {
+	return newQuery(l).Between(key,valu1,valu2)
+}
+func (l *Lama) Like(key string,value string) *Query {
+	return newQuery(l).Like(key,value)
+}
+func (l *Lama) StartsWith(key string,value string) *Query {
+	return newQuery(l).StartsWith(key,value)
+}
+func (l *Lama) EndsWith(key string,value string) *Query {
+	return newQuery(l).EndsWith(key,value)
+}
+func (l *Lama) Gt(key string,value interface{}) *Query {
+	return newQuery(l).Gt(key,value)
+}
+func (l *Lama) Gte(key string,value interface{}) *Query {
+	return newQuery(l).Gte(key,value)
+}
+func (l *Lama) Lt(key string,value interface{}) *Query {
+	return newQuery(l).Lt(key,value)
+}
+func (l *Lama) Lte(key string,value interface{}) *Query {
+	return newQuery(l).Lte(key,value)
+}
+func (l *Lama) Eq(key string,value interface{}) *Query {
+	return newQuery(l).Eq(key,value)
+}
+func (l *Lama) NotEq(key string,value interface{}) *Query {
+	return newQuery(l).NotEq(key,value)
+}
 func (l *Lama) Model(model interface{}) *Query {
 	return newQuery(l).Model(model)
 }

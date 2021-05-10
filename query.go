@@ -300,6 +300,40 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 func (q *Query) WhereOr(w ...Where) *Query {
 	return q._where(Where{Or: w})
 }
+
+func (q *Query) In(key string,valus ...interface{}) *Query {
+	return q.Where(In(q.lama.dialect,key,valus))
+}
+func (q *Query) Between(key string,valu1 interface{},valu2 interface{}) *Query {
+	return q.Where(Between(q.lama.dialect,key,valu1,valu2))
+}
+func (q *Query) Like(key string,value string) *Query {
+	return q.Where(Like(key,value))
+}
+func (q *Query) StartsWith(key string,value string) *Query {
+	return q.Where(StartsWith(key,value))
+}
+func (q *Query) EndsWith(key string,value string) *Query {
+	return q.Where(EndsWith(key,value))
+}
+func (q *Query) Gt(key string,value interface{}) *Query {
+	return q.Where(Gt(key,value))
+}
+func (q *Query) Gte(key string,value interface{}) *Query {
+	return q.Where(Gte(key,value))
+}
+func (q *Query) Lt(key string,value interface{}) *Query {
+	return q.Where(Lt(key,value))
+}
+func (q *Query) Lte(key string,value interface{}) *Query {
+	return q.Where(Lte(key,value))
+}
+func (q *Query) Eq(key string,value interface{}) *Query {
+	return q.Where(Eq(key,value))
+}
+func (q *Query) NotEq(key string,value interface{}) *Query {
+	return q.Where(NotEq(key,value))
+}
 func (q *Query) Model(model interface{}) *Query {
 	q.setModel(model)
 	q.from = GetTableName(model)
