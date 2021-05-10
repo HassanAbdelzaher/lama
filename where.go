@@ -2,8 +2,6 @@ package lama
 
 import (
 	"database/sql"
-	"math/rand"
-	"strconv"
 	"strings"
 )
 
@@ -14,6 +12,7 @@ type Where struct {
 	Or    []Where
 	Args  []sql.NamedArg
 	Raw   string
+	Fake bool
 }
 
 func (w *Where) Build(di Dialect) (string, []sql.NamedArg) {
@@ -42,7 +41,8 @@ func (w *Where) Build(di Dialect) (string, []sql.NamedArg) {
 	if bnN == "" {
 		bnN = "arg"
 	}
-	name := bnN + strconv.Itoa(rand.Int())
+	//name := bnN + strconv.Itoa(rand.Int())
+	name:=getArgName(bnN)
 	or := ""
 	if w.Or != nil {
 		for idx := range w.Or {

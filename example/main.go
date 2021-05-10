@@ -24,7 +24,7 @@ func init() {
 }
 func main() {
 	var hand Tariffs
-	err:=conn.Where(lama.NotEq("TARIFF_CODE","0")).First(&hand)
+	err:=conn.Where(lama.StartsWith("TARIFF_CODE","0-0")).First(&hand)
 	if err==nil{
 		err=conn.Upsert(hand)
 	}

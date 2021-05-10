@@ -3,13 +3,11 @@ package lama
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"github.com/HassanAbdelzaher/lama/structs"
 	"log"
 	"math/rand"
 	"reflect"
-	"strconv"
-	"strings"
-
-	"github.com/HassanAbdelzaher/lama/structs"
 )
 
 type Having struct {
@@ -18,6 +16,12 @@ type Having struct {
 }
 
 type ZeroValueType string
+
+
+func getArgName(key string) string{
+	nam:=fmt.Sprintf(`%s%d`,key,rand.Int31n(1000000))
+	return nam;
+}
 
 type Query struct {
 	from string
@@ -41,6 +45,7 @@ type Query struct {
 	havings                []Having
 	selectedZeroValues []string
 }
+
 
 func (q *Query) Debug(dbg bool) *Query {
 	q.debug = dbg
@@ -102,27 +107,23 @@ func (q *Query) buildWhere() string {
 	}
 	statment := ""
 	if q.wheres != nil && len(q.wheres) > 0 {
-		for idx := range q.wheres {
-			/*isZero:=false
-			if w.Value!=nil{
-				isZero=reflect.ValueOf(w.Value).IsZero()
-			}
-			if isZero && q.SkipZeroValues {
+		_idx:=0
+		for id := range q.wheres {
+			wh:=q.wheres[id]
+			if wh.Fake{
 				continue
-			}*/
-			if idx == 0 {
+			}
+			if _idx == 0 {
 				statment = statment + " where  "
 			} else {
 				statment = statment + " and  "
 			}
-			whs, args := q.wheres[idx].Build(q.lama.dialect)
+			_idx++
+			whs, args := wh.Build(q.lama.dialect)
 			statment = statment + whs + " "
 			if args != nil {
 				q.args = append(q.args, args...)
 			}
-			/*for a, b := range args {
-				q.args[a] = b
-			}*/
 		}
 	}
 	return statment
@@ -243,7 +244,7 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 		nCols := make([]string, 0)
 		fields := Map(structs.Fields(str, structs.MapOptions{}), func(i interface{}) interface{} {
 			f := i.(*structs.Field)
-			return f.Tag("db")
+			return f.Tag("grom")
 		})
 		for i := range q.columns {
 			ok, fCol := ContainsStrI(fields, q.columns[i], false)
@@ -261,7 +262,7 @@ func (q *Query) AdaptColumnNamesToStruct(str interface{}, skipNotMatchedColumns 
 }
 func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 	if query == nil {
-		q.addError(errors.New("invalied null query"))
+		//q.addError(errors.New("invalied null query"))
 		return q
 	}
 	if reflect.TypeOf(query).Kind() == reflect.String {
@@ -276,7 +277,16 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		}
 		return q.whereMap(values)
 	}
-	if reflect.TypeOf(query).Kind() == reflect.Struct || reflect.TypeOf(query).Kind() == reflect.Ptr {
+	val:=reflect.ValueOf(query)
+	if val.Kind()==reflect.Ptr{
+		val=val.Elem()
+	}
+	if reflect.TypeOf(val).Kind() == reflect.Struct {
+		wh,ok:=val.Interface().(Where)
+		if ok{
+			q._where(wh)
+			return q
+		}
 		values, err := StructToMap(query, true, false, true, true,q.selectedZeroValues)
 		if err != nil {
 			q.addError(err)
@@ -286,21 +296,6 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 	}
 
 	return q
-}
-func (q *Query) WhereIn(key string, values ...interface{}) *Query {
-	if values == nil || len(values) == 0 {
-		return q
-	}
-	args := make([]sql.NamedArg, 0)
-	ins := make([]string, 0)
-	for idx := range values {
-		nam := "Arg" + strconv.Itoa(idx) + strconv.Itoa(rand.Int())
-		args = append(args, sql.NamedArg{Name: nam, Value: values[idx]})
-		//args[nam] = v
-		ins = append(ins, ":"+nam)
-	}
-	stm := " " + key + " in(" + strings.Join(ins, ",") + ")"
-	return q._where(Where{Raw: stm, Args: args})
 }
 func (q *Query) WhereOr(w ...Where) *Query {
 	return q._where(Where{Or: w})
@@ -340,37 +335,51 @@ func (q *Query) Find(dest interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
-		elm := reflect.New(reflect.ValueOf(dest).Elem().Type().Elem()).Interface()
-		q.setModel(elm)
-		slq := SelectQuery{Query: *q}
-		stm, args := slq.Build(q.lama.dialect)
-		slice := reflect.ValueOf(dest).Interface()
-		namedArgs := make([]interface{}, 0)
-		for i := range args {
-			namedArgs = append(namedArgs, args[i])
+	var sliceType reflect.Type
+	isPointer :=false
+	if reflect.TypeOf(dest).Kind() == reflect.Ptr{
+		isPointer=true
+		sliceType=reflect.TypeOf(dest).Elem()
+	}else{
+		sliceType=reflect.TypeOf(dest)
+	}
+	if sliceType.Kind()!=reflect.Slice {
+		return errors.New("lama:destination must be a slice")
+	}
+	//set model
+	if q.model==nil{
+		inSlc:=reflect.TypeOf(dest).Elem()
+		if inSlc.Kind()!=reflect.Slice {
+			return errors.New("lama:destination must be a slice")
 		}
-		if q.lama.Tx != nil {
-			return q.lama.Tx.Select(slice, stm, namedArgs...)
-		} else {
-			return q.lama.DB.Select(slice, stm, namedArgs...)
-		}
-	} else {
-		elm := reflect.New(reflect.ValueOf(dest).Type().Elem()).Interface()
-		q.setModel(elm)
-		slice := reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
-		slq := SelectQuery{Query: *q}
-		stm, args := slq.Build(q.lama.dialect)
-		namedArgs := make([]interface{}, 0)
-		for i := range args {
-			namedArgs = append(namedArgs, args[i])
-		}
-		if q.lama.Tx != nil {
-			return q.lama.Tx.Select(slice, stm, namedArgs...)
-		} else {
-			return q.lama.DB.Select(slice, stm, namedArgs...)
+		slcItm:=inSlc.Elem()
+		if slcItm.Kind()==reflect.Ptr{
+			elm := reflect.New(slcItm.Elem()).Interface()
+			q.setModel(elm)
+		}else{
+			elm := reflect.New(slcItm).Interface()
+			q.setModel(elm)
 		}
 	}
+	slq := SelectQuery{Query: *q}
+	stm, args := slq.Build(q.lama.dialect)
+	namedArgs := make([]interface{}, 0)
+	for i := range args {
+		namedArgs = append(namedArgs, args[i])
+	}
+	var nwDest interface{}
+	if isPointer{
+		//nwDest=reflect.ValueOf(dest).Interface()
+		nwDest=dest
+	}else{
+		nwDest = reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
+	}
+	if q.lama.Tx != nil {
+		return q.lama.Tx.Select(nwDest, stm, namedArgs...)
+	} else {
+		return q.lama.DB.Select(nwDest, stm, namedArgs...)
+	}
+
 }
 func (q *Query) Get(dest interface{}) (err error) {
 	defer func() {
@@ -603,7 +612,6 @@ func (q *Query) Save(entity interface{}) (err error) {
 		}
 	}
 	//this function must be save and rollback if have private transaction
-
 	if q.lama.Tx != nil {
 		r, err := q.lama.Tx.Exec(stm, ar...)
 		if err != nil {
@@ -631,9 +639,50 @@ func (q *Query) Save(entity interface{}) (err error) {
 		err = errors.New("no data updated")
 	}
 	if eff > 1 {
-		err = errors.New("more than one entity operation cancelled ")
+		err = errors.New("more than one entity match primary key: operation cancelled ")
 	}
 	log.Println("rows effected:", eff)
+	return err
+}
+
+func (q *Query) Upsert(entity interface{}) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			} else {
+				if err == nil {
+					err = errors.New(("painc at save"))
+				}
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	//must be set befour build
+	if q.model == nil {
+		q.setModel(entity)
+	}
+	keys, err := structs.PrimaryKey(entity)
+	if err != nil {
+		return err
+	}
+	cq:=*q
+	cnt,err:=cq.Where(keys).Count()
+	if err!=nil{
+		return err
+	}
+	if cnt==nil || *cnt==0{
+		return q.Add(entity)
+	}else {
+		if *cnt>1{
+			return errors.New("more than on item match the primary key")
+		}
+		return q.Save(entity)
+	}
 	return err
 }
 
