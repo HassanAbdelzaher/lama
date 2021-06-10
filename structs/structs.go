@@ -142,14 +142,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 				continue
 			}
 		}
-		if  true/*!tagOpts.Has("omitnested")*/ {
-			finalVal = s.nested(val)
-
-
-		} else {
-			finalVal = val.Interface()
-		}
-
+		finalVal = s.nested(val)
 		/*if tagOpts.Has("string") {
 			s, ok := val.Interface().(fmt.Stringer)
 			if ok {
@@ -157,18 +150,22 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 			}
 			continue
 		}*/
-		/*isMap:=false
+		isFinalMap:=false
 		switch reflect.TypeOf(finalVal).Kind() {
 			case reflect.Map:
-			isMap = true //hassan
-		}*/
-		if /*isMap&&*/isSubStruct && (s.options.Flatten) {
-
-			for k := range finalVal.(map[string]interface{}) {
-				_,ok:=out[k]
-				if !ok{
-					out[k] = finalVal.(map[string]interface{})[k]
+				isFinalMap = true //hassan
+		}
+		if isFinalMap && (s.options.Flatten) {
+			_,ok:=finalVal.(map[string]interface{})
+			if ok {
+				for k := range finalVal.(map[string]interface{}) {
+					_, ok := out[k] //hassan//important to prevent nested struct from hide parent memeber
+					if !ok {
+						out[k] = finalVal.(map[string]interface{})[k]
+					}
 				}
+			}else{
+				out[name] = finalVal
 			}
 		} else {
 			out[name] = finalVal

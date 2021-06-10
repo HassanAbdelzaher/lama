@@ -32,23 +32,32 @@ type Server struct {
 	Name    string
 	ID      int32
 	Enabled bool
+	Mp map[string]interface{}
 }
 
 
 type Hub struct {
 	ID      int32
-	Server
+	*Server
+	Time time.Time
 }
 
 func main() {
+	mp:=map[string]interface{}{
+		"X":1,
+		"Y":nil,
+		"Z":time.Now(),
+	}
 	s := &Hub{
-		Server:Server{
+		ID: 0,
+		Server: &Server{
 			Name:    "Arslan",
 			ID:      123456,
 			Enabled: true,
+			Mp:mp,
 		},
+		Time: time.Time{},
 	}
-
 	m := structs.Map(s, structs.MapOptions{Flatten:true})
 	log.Println(m)
 }
