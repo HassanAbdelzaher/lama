@@ -719,8 +719,8 @@ func (q *Query) Upsert(entity interface{}) (err error) {
 	}
 	return err
 }
+//Delete delete entity match where from database
 
-//Delere entity from database
 func (q *Query) Delete(entity interface{}) (err error) {
 	var tx *LamaTx
 	defer func() {
@@ -799,6 +799,70 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	}
 	if eff > 1 {
 		err = errors.New("more than one entity operation cancelled ")
+	}
+	log.Println("rows effected:", eff)
+	return err
+}
+//DeleteAll  entities match where creteria from database
+func (q *Query) DeleteAll() (err error) {
+	var tx *LamaTx
+	defer func() {
+		if tx != nil {
+			if err != nil {
+				log.Println("private transaction roolback")
+				err = tx.Rollback()
+			} else {
+				log.Println("private transaction commit")
+				err = tx.Commit()
+			}
+		}
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			} else {
+				if err == nil {
+					err = errors.New(("painc at save"))
+				}
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	slq := DeleteQuery{Query: *q}
+	stm, args := slq.Build(q.lama.dialect)
+	var eff int64 = 0
+	ar := make([]interface{}, 0)
+	if args != nil {
+		for i := range args {
+			ar = append(ar, args[i])
+		}
+	}
+	//this function must be save and rollback if have private transaction
+	if q.lama.Tx != nil {
+		r, err := q.lama.Tx.Exec(stm, ar...)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
+	} else {
+		tx, err = q.lama.Begin()
+		if err != nil {
+			return err
+		}
+		r, err := tx.Tx.Exec(stm, ar...)
+		if err != nil {
+			return err
+		}
+		eff, err = r.RowsAffected()
+		if err != nil {
+			return err
+		}
 	}
 	log.Println("rows effected:", eff)
 	return err
