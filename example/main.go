@@ -27,18 +27,30 @@ func init() {
 	}
 
 }
+
+type Server struct {
+	Name    string
+	ID      int32
+	Enabled bool
+}
+
+
+type Hub struct {
+	ID      int32
+	Server
+}
+
 func main() {
-	var hand Tariffs
-	tx,err:=conn.Begin()
-	if err!=nil{
-		log.Println(err)
-		return
+	s := &Hub{
+		Server:Server{
+			Name:    "Arslan",
+			ID:      123456,
+			Enabled: true,
+		},
 	}
-	err=tx.Lama.Where(lama.Between(conn.Dialect(),"EFFECT_DATE",time.Now().AddDate(-10,0,0),time.Now().Add(2*time.Hour))).First(&hand)
-	if err==nil{
-		err=conn.Upsert(hand)
-	}
-	log.Println(err)
+
+	m := structs.Map(s, structs.MapOptions{Flatten:true})
+	log.Println(m)
 }
 type Tx time.Time
 type Car struct{
