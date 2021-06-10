@@ -719,6 +719,45 @@ func (q *Query) Upsert(entity interface{}) (err error) {
 	}
 	return err
 }
+
+func (q *Query) AddIfNotExists(entity interface{}) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			} else {
+				if err == nil {
+					err = errors.New(("painc at save"))
+				}
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	//must be set befour build
+	if q.model == nil {
+		q.setModel(entity)
+	}
+	keys, err := structs.PrimaryKey(entity)
+	if err != nil {
+		return err
+	}
+	cq:=*q
+	cnt,err:=cq.Where(keys).Count()
+	if err!=nil{
+		return err
+	}
+	if cnt==nil || *cnt==0{
+		return q.Add(entity)
+	}else {
+		//do nothing so never update if entity exsists
+	}
+	return err
+}
+
 //Delete delete entity match where from database
 
 func (q *Query) Delete(entity interface{}) (err error) {

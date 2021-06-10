@@ -275,6 +275,10 @@ func (l *Lama) Add(entity interface{}) error {
 	er := newQuery(l).Add(entity)
 	return er
 }
+func (l *Lama) AddIfNotExists(entity interface{}) error {
+	er := newQuery(l).AddIfNotExists(entity)
+	return er
+}
 
 func (l *Lama) Update(entity map[string]interface{}, bulkUpdate bool) error {
 	er := newQuery(l).Update(entity, bulkUpdate)
