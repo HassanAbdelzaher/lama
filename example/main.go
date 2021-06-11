@@ -44,7 +44,7 @@ type Hub struct {
 
 type HST_HAND struct{
 	RECALC_ID int32 `gorm:"primary_key1;column:RECALC_ID;type:INT;default:0;" json:"RECALC_ID" db:"RECALC_ID"`
-	HAND_MH_ST
+	*HAND_MH_ST
 }
 
 func main() {
@@ -56,7 +56,7 @@ func main() {
 	}
 	hst:=&HST_HAND{
 		RECALC_ID:  cid,
-		HAND_MH_ST: *hand,
+		HAND_MH_ST: hand,
 	}
 	keys,err:=structs.PrimaryKey(hst)
 	log.Println(err)

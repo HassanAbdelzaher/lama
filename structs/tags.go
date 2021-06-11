@@ -137,13 +137,18 @@ func PrimaryKey(entity interface{}) (map[string]interface{}, error) {
 				if tag==nil || tag.ColumnName=="" || tag.ColumnName=="embed"{
 					fType:=typ.Field(i)
 					isEmbed:=false
-					fval:=val.Field(i).Interface()
+					fval:=val.Field(i)
 					if fType.Type.Kind()==reflect.Struct {
 						isEmbed=true
 					}
+					if fType.Type.Kind()==reflect.Ptr {
+						if fType.Type.Elem().Kind()==reflect.Struct  && fval.IsValid() &&!fval.IsZero() && !fval.IsNil(){
+							isEmbed=true
+						}
+					}
 					if isEmbed {
 						//if ntag=="embed"|| ntag=="_embed" || ntag=="_"{
-						keys,err:=PrimaryKey(fval)
+						keys,err:=PrimaryKey(fval.Interface())
 						if err!=nil{
 							return nil,err
 						}
