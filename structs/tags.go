@@ -118,6 +118,7 @@ func PrimaryKey(entity interface{}) (map[string]interface{}, error) {
 		return ret, nil
 	}
 	typ := reflect.TypeOf(entity)
+	val:=reflect.ValueOf(entity)
 	if typ.Kind() == reflect.Struct {
 		nf := typ.NumField()
 		for i := 0; i < nf; i++ {
@@ -127,11 +128,36 @@ func PrimaryKey(entity interface{}) (map[string]interface{}, error) {
 				return nil, err
 			}
 			if tag != nil && tag.PRIMARY_KEY {
-				nam := tag.ColumnName
-				if len(nam) == 0 {
-					nam = fld.Name
+					nam := tag.ColumnName
+					if len(nam) == 0 {
+						nam = fld.Name
+					}
+					ret[nam] = reflect.ValueOf(entity).Field(i).Interface()
+			}else{
+				if tag==nil || tag.ColumnName=="" || tag.ColumnName=="embed"{
+					fType:=typ.Field(i)
+					isEmbed:=false
+					fval:=val.Field(i).Interface()
+					if fType.Type.Kind()==reflect.Struct {
+						isEmbed=true
+					}
+					if isEmbed {
+						//if ntag=="embed"|| ntag=="_embed" || ntag=="_"{
+						keys,err:=PrimaryKey(fval)
+						if err!=nil{
+							return nil,err
+						}
+						if keys!=nil{
+							for k:=range keys{
+								_,ok:=ret[k]
+								if !ok{
+									ret[k]=keys[k]
+								}
+							}
+						}
+					}
 				}
-				ret[nam] = reflect.ValueOf(entity).Field(i).Interface()
+
 			}
 		}
 

@@ -42,24 +42,25 @@ type Hub struct {
 	Time time.Time
 }
 
+type HST_HAND struct{
+	RECALC_ID int32 `gorm:"primary_key1;column:RECALC_ID;type:INT;default:0;" json:"RECALC_ID" db:"RECALC_ID"`
+	HAND_MH_ST
+}
+
 func main() {
-	mp:=map[string]interface{}{
-		"X":1,
-		"Y":nil,
-		"Z":time.Now(),
+	var cid int32=12
+	hand:=&HAND_MH_ST{
+		CUSTKEY:"121212",
+		CYCLE_ID:&cid,
+		STATION_NO:&cid,
 	}
-	s := &Hub{
-		ID: 0,
-		Server: &Server{
-			Name:    "Arslan",
-			ID:      123456,
-			Enabled: true,
-			Mp:mp,
-		},
-		Time: time.Time{},
+	hst:=&HST_HAND{
+		RECALC_ID:  cid,
+		HAND_MH_ST: *hand,
 	}
-	m := structs.Map(s, structs.MapOptions{Flatten:true})
-	log.Println(m)
+	keys,err:=structs.PrimaryKey(hst)
+	log.Println(err)
+	log.Println(keys)
 }
 type Tx time.Time
 type Car struct{
@@ -118,7 +119,6 @@ func testEmbded(id string) {
 	return
 
 }
-
 
 func testCase(id string) {
 	log.Println("start " + id)
