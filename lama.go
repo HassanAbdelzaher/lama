@@ -3,11 +3,11 @@ package lama
 import (
 	"database/sql"
 	"fmt"
-	"github.com/HassanAbdelzaher/lama/sqlx"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/HassanAbdelzaher/lama/sqlx"
 	//"github.com/HassanAbdelzaher/lama/sqlx"
 )
 
@@ -19,7 +19,8 @@ type Lama struct {
 	dialect Dialect
 	sync.Mutex
 }
-func (l *Lama) Dialect() Dialect{
+
+func (l *Lama) Dialect() Dialect {
 	return l.dialect
 }
 
@@ -39,8 +40,8 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	if err != nil {
 		return nil, err
 	}
-	DbConn.SetMaxOpenConns(5);
-	DbConn.SetMaxIdleConns(1);
+	DbConn.SetMaxOpenConns(5)
+	DbConn.SetMaxIdleConns(1)
 	DbConn.SetConnMaxLifetime(1 * time.Hour)
 	dialect := newDialect(driver)
 	return &Lama{
@@ -50,109 +51,107 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	}, nil
 }
 
-
 ///create wheres
 // WhereEqual accept nil and zero values
-func Eq(key string,value interface{}) Where {
-	if value==nil{
-		return Where{Raw:fmt.Sprintf(`%s is null`,key)}
+func Eq(key string, value interface{}) Where {
+	if value == nil {
+		return Where{Raw: fmt.Sprintf(`%s is null`, key)}
 	}
-	return Where{Expr:key,Op:"=",Value:value}
+	return Where{Expr: key, Op: "=", Value: value}
 }
 
 // WhereEqual accept nil and zero values
-func NotEq(key string,value interface{}) Where {
-	if value==nil{
-		return Where{Raw:fmt.Sprintf(`%s is not null`,key)}
-	}
-	return Where{Expr:key,Op:"<>",Value:value}
-}
-
-func Gt(key string,value interface{}) Where {
+func NotEq(key string, value interface{}) Where {
 	if value == nil {
-		return Where{Fake:true}
+		return Where{Raw: fmt.Sprintf(`%s is not null`, key)}
 	}
-	return Where{Expr:key,Op:">",Value:value}
+	return Where{Expr: key, Op: "<>", Value: value}
 }
 
-func Gte(key string,value interface{}) Where {
+func Gt(key string, value interface{}) Where {
 	if value == nil {
-		return Where{Fake:true}
+		return Where{Fake: true}
 	}
-	return Where{Expr:key,Op:">=",Value:value}
+	return Where{Expr: key, Op: ">", Value: value}
 }
 
-func Lt(key string,value interface{}) Where {
+func Gte(key string, value interface{}) Where {
 	if value == nil {
-		return Where{Fake:true}
+		return Where{Fake: true}
 	}
-	return Where{Expr:key,Op:"<",Value:value}
+	return Where{Expr: key, Op: ">=", Value: value}
 }
 
-func Lte(key string,value interface{}) Where {
+func Lt(key string, value interface{}) Where {
 	if value == nil {
-		return Where{Fake:true}
+		return Where{Fake: true}
 	}
-	return Where{Expr:key,Op:"<=",Value:value}
+	return Where{Expr: key, Op: "<", Value: value}
 }
 
-func In(di Dialect,key string, values ...interface{}) Where {
+func Lte(key string, value interface{}) Where {
+	if value == nil {
+		return Where{Fake: true}
+	}
+	return Where{Expr: key, Op: "<=", Value: value}
+}
+
+func In(di Dialect, key string, values ...interface{}) Where {
 	if values == nil || len(values) == 0 {
-		return Where{Fake:true}
+		return Where{Fake: true}
 	}
 	args := make([]sql.NamedArg, 0)
 	ins := make([]string, 0)
 	for idx := range values {
-		nam :=(getArgName(fmt.Sprintf(`%s%d`,key,idx)))
+		nam := (getArgName(fmt.Sprintf(`%s%d`, key, idx)))
 		args = append(args, sql.NamedArg{Name: nam, Value: values[idx]})
 		//args[nam] = v
 		ins = append(ins, di.BindVarStr(nam))
 	}
 	//stm := " " + key + " between (" + strings.Join(ins, ",") + ")"
-	stm:=fmt.Sprintf(`%s in (%s)`,key,strings.Join(ins, ","))
+	stm := fmt.Sprintf(`%s in (%s)`, key, strings.Join(ins, ","))
 	return Where{Raw: stm, Args: args}
 }
 
-func Between(di Dialect,key string, value1 interface{},value2 interface{}) Where {
-	if value1 == nil && value2==nil {
-		return Where{Fake:true}
+func Between(di Dialect, key string, value1 interface{}, value2 interface{}) Where {
+	if value1 == nil && value2 == nil {
+		return Where{Fake: true}
 	}
-	if value2==nil{
-		return Gte(key,value1)
+	if value2 == nil {
+		return Gte(key, value1)
 	}
-	if value1==nil{
-		return Lte(key,value2)
+	if value1 == nil {
+		return Lte(key, value2)
 	}
 	args := make([]sql.NamedArg, 0)
-	nam1 :=(getArgName(key))
-	nam2 := (getArgName(key+"_"))
+	nam1 := (getArgName(key))
+	nam2 := (getArgName(key + "_"))
 	args = append(args, sql.NamedArg{Name: nam1, Value: value1})
 	args = append(args, sql.NamedArg{Name: nam2, Value: value2})
-	stm := fmt.Sprintf(`%s between %s and %s`,key,di.BindVarStr(nam1),di.BindVarStr(nam2))
+	stm := fmt.Sprintf(`%s between %s and %s`, key, di.BindVarStr(nam1), di.BindVarStr(nam2))
 	return Where{Raw: stm, Args: args}
 }
 
 func Like(key string, value1 interface{}) Where {
-	if value1 == nil{
-		return Where{Fake:true}
+	if value1 == nil {
+		return Where{Fake: true}
 	}
 	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%%%s%%'`,key,value1)
+	stm := fmt.Sprintf(`%s like '%%%s%%'`, key, value1)
 	return Where{Raw: stm, Args: args}
 }
 
 func EndsWith(key string, value1 string) Where {
 	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%%%s'`,key,value1)
+	stm := fmt.Sprintf(`%s like '%%%s'`, key, value1)
 	return Where{Raw: stm, Args: args}
 }
 
 func StartsWith(key string, value1 string) Where {
 	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%s%%'`,key,value1)
+	stm := fmt.Sprintf(`%s like '%s%%'`, key, value1)
 	return Where{Raw: stm, Args: args}
 }
-
 
 func newQuery(l *Lama) *Query {
 	l.Lock()
@@ -190,6 +189,12 @@ func (l *Lama) Count() (*int64, error) {
 func (l *Lama) Sum(column string) (*float64, error) {
 	return newQuery(l).Sum(column)
 }
+func (l *Lama) Max(column string) (*float64, error) {
+	return newQuery(l).Max(column)
+}
+func (l *Lama) Min(column string) (*float64, error) {
+	return newQuery(l).Min(column)
+}
 func (l *Lama) CountColumn(dest interface{}, expr string) error {
 	return newQuery(l).CountColumn(dest, expr)
 }
@@ -203,38 +208,38 @@ func (l *Lama) WhereOr(w ...Where) *Query {
 	return newQuery(l).WhereOr(w...)
 }
 
-func (l *Lama) In(key string,valus ...interface{}) *Query {
-	return newQuery(l).In(key,valus)
+func (l *Lama) In(key string, valus ...interface{}) *Query {
+	return newQuery(l).In(key, valus)
 }
-func (l *Lama) Between(key string,valu1 interface{},valu2 interface{}) *Query {
-	return newQuery(l).Between(key,valu1,valu2)
+func (l *Lama) Between(key string, valu1 interface{}, valu2 interface{}) *Query {
+	return newQuery(l).Between(key, valu1, valu2)
 }
-func (l *Lama) Like(key string,value string) *Query {
-	return newQuery(l).Like(key,value)
+func (l *Lama) Like(key string, value string) *Query {
+	return newQuery(l).Like(key, value)
 }
-func (l *Lama) StartsWith(key string,value string) *Query {
-	return newQuery(l).StartsWith(key,value)
+func (l *Lama) StartsWith(key string, value string) *Query {
+	return newQuery(l).StartsWith(key, value)
 }
-func (l *Lama) EndsWith(key string,value string) *Query {
-	return newQuery(l).EndsWith(key,value)
+func (l *Lama) EndsWith(key string, value string) *Query {
+	return newQuery(l).EndsWith(key, value)
 }
-func (l *Lama) Gt(key string,value interface{}) *Query {
-	return newQuery(l).Gt(key,value)
+func (l *Lama) Gt(key string, value interface{}) *Query {
+	return newQuery(l).Gt(key, value)
 }
-func (l *Lama) Gte(key string,value interface{}) *Query {
-	return newQuery(l).Gte(key,value)
+func (l *Lama) Gte(key string, value interface{}) *Query {
+	return newQuery(l).Gte(key, value)
 }
-func (l *Lama) Lt(key string,value interface{}) *Query {
-	return newQuery(l).Lt(key,value)
+func (l *Lama) Lt(key string, value interface{}) *Query {
+	return newQuery(l).Lt(key, value)
 }
-func (l *Lama) Lte(key string,value interface{}) *Query {
-	return newQuery(l).Lte(key,value)
+func (l *Lama) Lte(key string, value interface{}) *Query {
+	return newQuery(l).Lte(key, value)
 }
-func (l *Lama) Eq(key string,value interface{}) *Query {
-	return newQuery(l).Eq(key,value)
+func (l *Lama) Eq(key string, value interface{}) *Query {
+	return newQuery(l).Eq(key, value)
 }
-func (l *Lama) NotEq(key string,value interface{}) *Query {
-	return newQuery(l).NotEq(key,value)
+func (l *Lama) NotEq(key string, value interface{}) *Query {
+	return newQuery(l).NotEq(key, value)
 }
 func (l *Lama) Model(model interface{}) *Query {
 	return newQuery(l).Model(model)
@@ -296,13 +301,13 @@ func (l *Lama) Begin() (*LamaTx, error) {
 	defer l.Unlock()
 	tx, err := l.DB.Beginx()
 	if err != nil {
-		return &LamaTx{Lama:l}, err
+		return &LamaTx{Lama: l}, err
 	}
-	return &LamaTx{Lama:&Lama{
+	return &LamaTx{Lama: &Lama{
 		Debug:   l.Debug,
 		DB:      l.DB,
 		dialect: l.dialect,
-		Tx:tx,
+		Tx:      tx,
 	}}, nil
 }
 

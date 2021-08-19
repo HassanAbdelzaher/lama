@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/HassanAbdelzaher/lama/structs"
 	"log"
 	"math/rand"
 	"reflect"
+
+	"github.com/HassanAbdelzaher/lama/structs"
 )
 
 type Having struct {
@@ -17,10 +18,9 @@ type Having struct {
 
 type ZeroValueType string
 
-
-func getArgName(key string) string{
-	nam:=fmt.Sprintf(`%s%d`,key,rand.Int31n(1000000))
-	return nam;
+func getArgName(key string) string {
+	nam := fmt.Sprintf(`%s%d`, key, rand.Int31n(1000000))
+	return nam
 }
 
 type Query struct {
@@ -43,9 +43,8 @@ type Query struct {
 	havePrivateTransaction bool
 	lama                   *Lama
 	havings                []Having
-	selectedZeroValues []string
+	selectedZeroValues     []string
 }
-
 
 func (q *Query) Debug(dbg bool) *Query {
 	q.debug = dbg
@@ -107,10 +106,10 @@ func (q *Query) buildWhere() string {
 	}
 	statment := ""
 	if q.wheres != nil && len(q.wheres) > 0 {
-		_idx:=0
+		_idx := 0
 		for id := range q.wheres {
-			wh:=q.wheres[id]
-			if wh.Fake{
+			wh := q.wheres[id]
+			if wh.Fake {
 				continue
 			}
 			if _idx == 0 {
@@ -146,7 +145,7 @@ func (q *Query) setValues(val interface{}) *Query {
 		return q
 	}
 	if reflect.TypeOf(val).Kind() == reflect.Struct || reflect.TypeOf(val).Kind() == reflect.Ptr {
-		values, err := StructToMap(val, false, true, false, false,q.selectedZeroValues)
+		values, err := StructToMap(val, false, true, false, false, q.selectedZeroValues)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -277,17 +276,17 @@ func (q *Query) Where(query interface{}, args ...sql.NamedArg) *Query {
 		}
 		return q.whereMap(values)
 	}
-	val:=reflect.ValueOf(query)
-	if val.Kind()==reflect.Ptr{
-		val=val.Elem()
+	val := reflect.ValueOf(query)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
 	}
 	if reflect.TypeOf(val).Kind() == reflect.Struct {
-		wh,ok:=val.Interface().(Where)
-		if ok{
+		wh, ok := val.Interface().(Where)
+		if ok {
 			q._where(wh)
 			return q
 		}
-		values, err := StructToMap(query, true, false, true, true,q.selectedZeroValues)
+		values, err := StructToMap(query, true, false, true, true, q.selectedZeroValues)
 		if err != nil {
 			q.addError(err)
 			return q
@@ -301,38 +300,38 @@ func (q *Query) WhereOr(w ...Where) *Query {
 	return q._where(Where{Or: w})
 }
 
-func (q *Query) In(key string,valus ...interface{}) *Query {
-	return q.Where(In(q.lama.dialect,key,valus))
+func (q *Query) In(key string, valus ...interface{}) *Query {
+	return q.Where(In(q.lama.dialect, key, valus))
 }
-func (q *Query) Between(key string,valu1 interface{},valu2 interface{}) *Query {
-	return q.Where(Between(q.lama.dialect,key,valu1,valu2))
+func (q *Query) Between(key string, valu1 interface{}, valu2 interface{}) *Query {
+	return q.Where(Between(q.lama.dialect, key, valu1, valu2))
 }
-func (q *Query) Like(key string,value string) *Query {
-	return q.Where(Like(key,value))
+func (q *Query) Like(key string, value string) *Query {
+	return q.Where(Like(key, value))
 }
-func (q *Query) StartsWith(key string,value string) *Query {
-	return q.Where(StartsWith(key,value))
+func (q *Query) StartsWith(key string, value string) *Query {
+	return q.Where(StartsWith(key, value))
 }
-func (q *Query) EndsWith(key string,value string) *Query {
-	return q.Where(EndsWith(key,value))
+func (q *Query) EndsWith(key string, value string) *Query {
+	return q.Where(EndsWith(key, value))
 }
-func (q *Query) Gt(key string,value interface{}) *Query {
-	return q.Where(Gt(key,value))
+func (q *Query) Gt(key string, value interface{}) *Query {
+	return q.Where(Gt(key, value))
 }
-func (q *Query) Gte(key string,value interface{}) *Query {
-	return q.Where(Gte(key,value))
+func (q *Query) Gte(key string, value interface{}) *Query {
+	return q.Where(Gte(key, value))
 }
-func (q *Query) Lt(key string,value interface{}) *Query {
-	return q.Where(Lt(key,value))
+func (q *Query) Lt(key string, value interface{}) *Query {
+	return q.Where(Lt(key, value))
 }
-func (q *Query) Lte(key string,value interface{}) *Query {
-	return q.Where(Lte(key,value))
+func (q *Query) Lte(key string, value interface{}) *Query {
+	return q.Where(Lte(key, value))
 }
-func (q *Query) Eq(key string,value interface{}) *Query {
-	return q.Where(Eq(key,value))
+func (q *Query) Eq(key string, value interface{}) *Query {
+	return q.Where(Eq(key, value))
 }
-func (q *Query) NotEq(key string,value interface{}) *Query {
-	return q.Where(NotEq(key,value))
+func (q *Query) NotEq(key string, value interface{}) *Query {
+	return q.Where(NotEq(key, value))
 }
 func (q *Query) Model(model interface{}) *Query {
 	q.setModel(model)
@@ -370,27 +369,27 @@ func (q *Query) Find(dest interface{}) (err error) {
 		return err
 	}
 	var sliceType reflect.Type
-	isPointer :=false
-	if reflect.TypeOf(dest).Kind() == reflect.Ptr{
-		isPointer=true
-		sliceType=reflect.TypeOf(dest).Elem()
-	}else{
-		sliceType=reflect.TypeOf(dest)
+	isPointer := false
+	if reflect.TypeOf(dest).Kind() == reflect.Ptr {
+		isPointer = true
+		sliceType = reflect.TypeOf(dest).Elem()
+	} else {
+		sliceType = reflect.TypeOf(dest)
 	}
-	if sliceType.Kind()!=reflect.Slice {
+	if sliceType.Kind() != reflect.Slice {
 		return errors.New("lama:destination must be a slice")
 	}
 	//set model
-	if q.model==nil{
-		inSlc:=reflect.TypeOf(dest).Elem()
-		if inSlc.Kind()!=reflect.Slice {
+	if q.model == nil {
+		inSlc := reflect.TypeOf(dest).Elem()
+		if inSlc.Kind() != reflect.Slice {
 			return errors.New("lama:destination must be a slice")
 		}
-		slcItm:=inSlc.Elem()
-		if slcItm.Kind()==reflect.Ptr{
+		slcItm := inSlc.Elem()
+		if slcItm.Kind() == reflect.Ptr {
 			elm := reflect.New(slcItm.Elem()).Interface()
 			q.setModel(elm)
-		}else{
+		} else {
 			elm := reflect.New(slcItm).Interface()
 			q.setModel(elm)
 		}
@@ -402,10 +401,10 @@ func (q *Query) Find(dest interface{}) (err error) {
 		namedArgs = append(namedArgs, args[i])
 	}
 	var nwDest interface{}
-	if isPointer{
+	if isPointer {
 		//nwDest=reflect.ValueOf(dest).Interface()
-		nwDest=dest
-	}else{
+		nwDest = dest
+	} else {
 		nwDest = reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
 	}
 	if q.lama.Tx != nil {
@@ -566,6 +565,68 @@ func (q *Query) Sum(column string) (sm *float64, err error) {
 	return _sm, err
 }
 
+func (q *Query) Min(column string) (sm *float64, err error) {
+	defer func() {
+		//q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return nil, errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	if column == "" {
+		return nil, errors.New("invalied column name")
+	}
+	q.columns = make([]string, 0)
+	q.columns = append(q.columns, "MAX("+column+") as SM")
+	var _sm *float64
+	err = q.Get(&_sm)
+	if err != nil {
+		return nil, err
+	}
+	if _sm == nil {
+		var zero float64 = 0
+		return &zero, nil
+	}
+	return _sm, err
+}
+
+func (q *Query) Max(column string) (sm *float64, err error) {
+	defer func() {
+		//q.FinalizeWith(err)
+		if r := recover(); r != nil {
+			log.Println("panic:", r)
+			errr, ok := r.(error)
+			if ok {
+				err = errr
+			}
+		}
+	}()
+	if len(q.errors) > 0 {
+		return nil, errors.New("more than one error occured:" + q.errors[0].Error())
+	}
+	if column == "" {
+		return nil, errors.New("invalied column name")
+	}
+	q.columns = make([]string, 0)
+	q.columns = append(q.columns, "MAX("+column+") as SM")
+	var _sm *float64
+	err = q.Get(&_sm)
+	if err != nil {
+		return nil, err
+	}
+	if _sm == nil {
+		var zero float64 = 0
+		return &zero, nil
+	}
+	return _sm, err
+}
+
 func (q *Query) CountColumn(dest interface{}, key string) (err error) {
 	defer func() {
 		//q.FinalizeWith(err)
@@ -704,15 +765,15 @@ func (q *Query) Upsert(entity interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	cq:=*q
-	cnt,err:=cq.Where(keys).Count()
-	if err!=nil{
+	cq := *q
+	cnt, err := cq.Where(keys).Count()
+	if err != nil {
 		return err
 	}
-	if cnt==nil || *cnt==0{
+	if cnt == nil || *cnt == 0 {
 		return q.Add(entity)
-	}else {
-		if *cnt>1{
+	} else {
+		if *cnt > 1 {
 			return errors.New("more than on item match the primary key")
 		}
 		return q.Save(entity)
@@ -745,14 +806,14 @@ func (q *Query) AddIfNotExists(entity interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	cq:=*q
-	cnt,err:=cq.Where(keys).Count()
-	if err!=nil{
+	cq := *q
+	cnt, err := cq.Where(keys).Count()
+	if err != nil {
 		return err
 	}
-	if cnt==nil || *cnt==0{
+	if cnt == nil || *cnt == 0 {
 		return q.Add(entity)
-	}else {
+	} else {
 		//do nothing so never update if entity exsists
 	}
 	return err
@@ -842,6 +903,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	log.Println("rows effected:", eff)
 	return err
 }
+
 //DeleteAll  entities match where creteria from database
 func (q *Query) DeleteAll() (err error) {
 	var tx *LamaTx
