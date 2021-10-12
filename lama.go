@@ -1,9 +1,8 @@
 package lama
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,16 +19,15 @@ type Lama struct {
 	sync.Mutex
 }
 
-func (l *Lama) Dialect() Dialect {
-	return l.dialect
-}
-
 type LamaTx struct {
 	*Lama
 }
 
+func (l *Lama) Dialect() Dialect {
+	return l.dialect
+}
+
 func Connect(driver string, connstr string) (*Lama, error) {
-	//cnsStr := fmt.Sprintf("server=%s;database=%s;user=%s;password=%s", config.AppConfig.Server, config.AppConfig.Database, config.AppConfig.User, config.AppConfig.Passeord)
 	if driver == "oracle" {
 		driver = "godror"
 	}
@@ -51,118 +49,21 @@ func Connect(driver string, connstr string) (*Lama, error) {
 	}, nil
 }
 
-///create wheres
-// WhereEqual accept nil and zero values
-func Eq(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Raw: fmt.Sprintf(`%s is null`, key)}
-	}
-	return Where{Expr: key, Op: "=", Value: value}
-}
-
-// WhereEqual accept nil and zero values
-func NotEq(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Raw: fmt.Sprintf(`%s is not null`, key)}
-	}
-	return Where{Expr: key, Op: "<>", Value: value}
-}
-
-func Gt(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Fake: true}
-	}
-	return Where{Expr: key, Op: ">", Value: value}
-}
-
-func Gte(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Fake: true}
-	}
-	return Where{Expr: key, Op: ">=", Value: value}
-}
-
-func Lt(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Fake: true}
-	}
-	return Where{Expr: key, Op: "<", Value: value}
-}
-
-func Lte(key string, value interface{}) Where {
-	if value == nil {
-		return Where{Fake: true}
-	}
-	return Where{Expr: key, Op: "<=", Value: value}
-}
-
-func In(di Dialect, key string, values ...interface{}) Where {
-	if values == nil || len(values) == 0 {
-		return Where{Fake: true}
-	}
-	args := make([]sql.NamedArg, 0)
-	ins := make([]string, 0)
-	for idx := range values {
-		nam := (getArgName(fmt.Sprintf(`%s%d`, key, idx)))
-		args = append(args, sql.NamedArg{Name: nam, Value: values[idx]})
-		//args[nam] = v
-		ins = append(ins, di.BindVarStr(nam))
-	}
-	//stm := " " + key + " between (" + strings.Join(ins, ",") + ")"
-	stm := fmt.Sprintf(`%s in (%s)`, key, strings.Join(ins, ","))
-	return Where{Raw: stm, Args: args}
-}
-
-func Between(di Dialect, key string, value1 interface{}, value2 interface{}) Where {
-	if value1 == nil && value2 == nil {
-		return Where{Fake: true}
-	}
-	if value2 == nil {
-		return Gte(key, value1)
-	}
-	if value1 == nil {
-		return Lte(key, value2)
-	}
-	args := make([]sql.NamedArg, 0)
-	nam1 := (getArgName(key))
-	nam2 := (getArgName(key + "_"))
-	args = append(args, sql.NamedArg{Name: nam1, Value: value1})
-	args = append(args, sql.NamedArg{Name: nam2, Value: value2})
-	stm := fmt.Sprintf(`%s between %s and %s`, key, di.BindVarStr(nam1), di.BindVarStr(nam2))
-	return Where{Raw: stm, Args: args}
-}
-
-func Like(key string, value1 interface{}) Where {
-	if value1 == nil {
-		return Where{Fake: true}
-	}
-	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%%%s%%'`, key, value1)
-	return Where{Raw: stm, Args: args}
-}
-
-func EndsWith(key string, value1 string) Where {
-	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%%%s'`, key, value1)
-	return Where{Raw: stm, Args: args}
-}
-
-func StartsWith(key string, value1 string) Where {
-	args := make([]sql.NamedArg, 0)
-	stm := fmt.Sprintf(`%s like '%s%%'`, key, value1)
-	return Where{Raw: stm, Args: args}
-}
-
 func newQuery(l *Lama) *Query {
 	l.Lock()
 	defer l.Unlock()
 	query := Query{debug: l.Debug, lama: l}
 	query.args = make([]sql.NamedArg, 0)
 	query.values = make(map[string]interface{})
+	query.context = context.Background() //default contxt
 	//createing new transaction with new query
 	//make connection leak
 	//so transaction must be create inside the actual function
 	return &query
+}
+
+func (l *Lama) Exce(stm string, ar ...interface{}) (eff int64, err error) {
+	return newQuery(l).Exce(stm, ar...)
 }
 
 func (l *Lama) OrderBy(by ...string) *Query {

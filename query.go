@@ -1,6 +1,7 @@
 package lama
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -44,10 +45,18 @@ type Query struct {
 	lama                   *Lama
 	havings                []Having
 	selectedZeroValues     []string
+	context                context.Context
 }
 
 func (q *Query) Debug(dbg bool) *Query {
 	q.debug = dbg
+	return q
+}
+
+func (q *Query) WithContext(ctx context.Context) *Query {
+	if ctx != nil {
+		q.context = ctx
+	}
 	return q
 }
 
@@ -408,9 +417,9 @@ func (q *Query) Find(dest interface{}) (err error) {
 		nwDest = reflect.MakeSlice(reflect.TypeOf(dest), 0, 0)
 	}
 	if q.lama.Tx != nil {
-		return q.lama.Tx.Select(nwDest, stm, namedArgs...)
+		return q.lama.Tx.SelectContext(q.context, nwDest, stm, namedArgs...)
 	} else {
-		return q.lama.DB.Select(nwDest, stm, namedArgs...)
+		return q.lama.DB.SelectContext(q.context, nwDest, stm, namedArgs...)
 	}
 
 }
@@ -437,14 +446,10 @@ func (q *Query) Get(dest interface{}) (err error) {
 		namedArgs = append(namedArgs, args[i])
 	}
 	if q.lama.Tx != nil {
-		return q.lama.Tx.Get(dest, stm, namedArgs...)
+		return q.lama.Tx.GetContext(q.context, dest, stm, namedArgs...)
 	} else {
-		return q.lama.DB.Get(dest, stm, namedArgs...)
+		return q.lama.DB.GetContext(q.context, dest, stm, namedArgs...)
 	}
-	//err = q.tx.Get(dest, stm, namedArgs...)
-	/*if err == sql.ErrNoRows {
-		return nil // it will make dangerous effect
-	}*/
 }
 
 func (q *Query) First(dest interface{}) (err error) {
@@ -708,7 +713,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 	}
 	//this function must be save and rollback if have private transaction
 	if q.lama.Tx != nil {
-		r, err := q.lama.Tx.Exec(stm, ar...)
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -721,7 +726,7 @@ func (q *Query) Save(entity interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		r, err := tx.Tx.Exec(stm, ar...)
+		r, err := tx.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -778,7 +783,6 @@ func (q *Query) Upsert(entity interface{}) (err error) {
 		}
 		return q.Save(entity)
 	}
-	return err
 }
 
 func (q *Query) AddIfNotExists(entity interface{}) (err error) {
@@ -872,7 +876,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 	//this function must be save and rollback if have private transaction
 
 	if q.lama.Tx != nil {
-		r, err := q.lama.Tx.Exec(stm, ar...)
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -885,7 +889,7 @@ func (q *Query) Delete(entity interface{}) (err error) {
 		if err != nil {
 			return err
 		}
-		r, err := tx.Tx.Exec(stm, ar...)
+		r, err := tx.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -943,7 +947,7 @@ func (q *Query) DeleteAll() (err error) {
 	}
 	//this function must be save and rollback if have private transaction
 	if q.lama.Tx != nil {
-		r, err := q.lama.Tx.Exec(stm, ar...)
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -956,7 +960,7 @@ func (q *Query) DeleteAll() (err error) {
 		if err != nil {
 			return err
 		}
-		r, err := tx.Tx.Exec(stm, ar...)
+		r, err := tx.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -1000,13 +1004,13 @@ func (q *Query) Update(data map[string]interface{}, acceptBulk bool) (err error)
 		}
 	}
 	if q.lama.Tx != nil {
-		r, err := q.lama.Tx.Exec(stm, ar...)
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
 		eff, err = r.RowsAffected()
 	} else {
-		r, err := q.lama.DB.Exec(stm, ar...)
+		r, err := q.lama.DB.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -1045,13 +1049,13 @@ func (q *Query) Add(entity interface{}) (err error) {
 		ar = append(ar, args[i])
 	}
 	if q.lama.Tx != nil {
-		r, err := q.lama.Tx.Exec(stm, ar...)
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
 		eff, err = r.RowsAffected()
 	} else {
-		r, err := q.lama.DB.Exec(stm, ar...)
+		r, err := q.lama.DB.ExecContext(q.context, stm, ar...)
 		if err != nil {
 			return err
 		}
@@ -1059,6 +1063,23 @@ func (q *Query) Add(entity interface{}) (err error) {
 	}
 	log.Println("rows effected:", eff)
 	return err
+}
+
+func (q *Query) Exce(stm string, ar ...interface{}) (eff int64, err error) {
+	if q.lama.Tx != nil {
+		r, err := q.lama.Tx.ExecContext(q.context, stm, ar...)
+		if err != nil {
+			return eff, err
+		}
+		eff, err = r.RowsAffected()
+	} else {
+		r, err := q.lama.DB.ExecContext(q.context, stm, ar...)
+		if err != nil {
+			return eff, err
+		}
+		eff, err = r.RowsAffected()
+	}
+	return eff, nil
 }
 
 //setModel set the model used to find tablename and  generate column names
@@ -1077,56 +1098,3 @@ func (q *Query) setModel(_dest interface{}) {
 		q.model =m
 	}*/
 }
-
-/*func (q *Query) Finalize(commit bool) error {
-	if q.havePrivateTransaction && q.tx != nil {
-		if commit {
-			return q.tx.Commit()
-		} else {
-			return q.tx.Rollback()
-		}
-	}
-	return nil
-}
-
-/*func (q *Query) FinalizeWith(err error) error {
-	commit := true
-	if err != nil {
-		commit = false
-	}
-	if q.havePrivateTransaction && q.tx != nil {
-		defer func() {
-			q.tx = nil
-		}()
-		if commit {
-			return q.tx.Commit()
-		} else {
-			return q.tx.Rollback()
-		}
-	}
-	return nil
-}*/
-
-/*func (q *Query) getTx() (*sqlx.Tx,func(error),error) {
-	if q.lama.Tx == nil {
-		tx, err := q.lama.DB.Beginx()
-		if err != nil {
-			q.addError(err)
-			return nil,nil,err
-		} else {
-			q.havePrivateTransaction = true
-			return tx, func(err error) {
-				if err!=nil{
-					tx.Rollback()
-				} else {
-					tx.Commit()
-				}
-			},nil
-		}
-	} else {
-		q.havePrivateTransaction = false
-		return q.lama.Tx, func(err error) {
-
-		},nil
-	}
-}*/

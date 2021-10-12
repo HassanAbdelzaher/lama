@@ -1,25 +1,26 @@
 package test
 
 import (
-	lama2 "github.com/HassanAbdelzaher/lama"
 	"math/rand"
 	"testing"
 	"time"
+
+	lama2 "github.com/HassanAbdelzaher/lama"
 )
 
 func _TestOracleConnect(t *testing.T) {
 	var err error
 	//lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
-	lama, err = lama2.Connect("godror", `user="hcs_edams" password="ashaman" connectString="localhost:1521/giza"`)
+	DB, err = lama2.Connect("godror", `user="sys" password="Oradoc_db1" connectString="localhost:3400/lama"`)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	lama.Debug=true
+	DB.Debug = true
 	rand.Seed(time.Now().UnixNano())
 }
 
-func T1estOracle(t *testing.T)  {
+func T1estOracle(t *testing.T) {
 	_TestOracleConnect(t)
 	_TestDelete(t)
 	_TestAdd(t)

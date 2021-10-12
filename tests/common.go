@@ -35,14 +35,14 @@ func (t *TestTable) TableName() string {
 	return "TestTable"
 }
 
-var lama *lama2.Lama
+var DB *lama2.Lama
 
 func _TestSelect(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
 	var data []TestTable
-	err := lama.Model(TestTable{}).Find(&data)
+	err := DB.Model(TestTable{}).Find(&data)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -84,10 +84,10 @@ func _TestSelect(t *testing.T) {
 	//TestConnect(t)
 }
 func _TestGroupBy(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
-	sm, err := lama.Model(TestTable{}).Having("count(*)>0").GroupBy("NAME").Sum("ID")
+	sm, err := DB.Model(TestTable{}).Having("count(*)>0").GroupBy("NAME").Sum("ID")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -96,22 +96,22 @@ func _TestGroupBy(t *testing.T) {
 }
 
 func _TestDelete(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
-	count, err := lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
+	count, err := DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	err = lama.Delete(TestTable{
+	err = DB.Delete(TestTable{
 		ID: sample.ID,
 	})
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	count, err = lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
+	count, err = DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -122,15 +122,15 @@ func _TestDelete(t *testing.T) {
 }
 
 func _TestAdd(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
-	err := lama.Add(sample)
+	err := DB.Add(sample)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	count, err := lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
+	count, err := DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Count()
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -141,10 +141,10 @@ func _TestAdd(t *testing.T) {
 }
 
 func _TestUpdate(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
-	err := lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Update(map[string]interface{}{
+	err := DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).Update(map[string]interface{}{
 		"NAME":       "hassan",
 		"STAMP_DATE": time.Now(),
 		"COUNTER":    *sample.COUNTER + 1,
@@ -154,7 +154,7 @@ func _TestUpdate(t *testing.T) {
 		return
 	}
 	var tbl TestTable
-	err = lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl)
+	err = DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -165,11 +165,11 @@ func _TestUpdate(t *testing.T) {
 }
 
 func _TestSave(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
 	var tbl TestTable
-	err := lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl)
+	err := DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -180,13 +180,13 @@ func _TestSave(t *testing.T) {
 	}
 	counter := cnt + 1
 	tbl.COUNTER = &counter
-	err = lama.Save(&tbl)
+	err = DB.Save(&tbl)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 	var tbl2 TestTable
-	err = lama.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl2)
+	err = DB.Model(TestTable{}).Where(TestTable{ID: sample.ID}).First(&tbl2)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -197,10 +197,10 @@ func _TestSave(t *testing.T) {
 }
 
 func _TestSum(t *testing.T) {
-	if lama == nil {
+	if DB == nil {
 		return
 	}
-	_, err := lama.Model(TestTable{}).Sum("ID")
+	_, err := DB.Model(TestTable{}).Sum("ID")
 	if err != nil {
 		t.Error(err)
 	}

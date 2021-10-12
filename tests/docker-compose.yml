@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  mssql:
+    image: 'mcr.microsoft.com/mssql/server:2017-CU8-ubuntu'
+    ports:
+      - 3300:1433
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=mas@EDMAS7
+      - MSSQL_DB=lama
+      - MSSQL_USER=lama
+      - MSSQL_PASSWORD=mas@EDMAS7
+  oracle:
+    image: 'store/oracle/database-enterprise:12.2.0.1'
+    ports:
+      - 3400:1521
+    environment:
+      - DB_SID=lama
+      - DB_PDB=lama
+  mysql:
+    image: 'mysql:latest'
+    ports:
+      - 3500:3306
+    environment:
+      - MYSQL_DATABASE=lama
+      - MYSQL_USER=lama
+      - MYSQL_PASSWORD=mas@EDMAS7
+      - MYSQL_RANDOM_ROOT_PASSWORD="yes"
+  postgres:
+    image: 'postgres:latest'
+    ports:
+      - 3600:5432
+    environment:
+      - POSTGRES_DB=lama
+      - POSTGRES_USER=lama
+      - POSTGRES_PASSWORD=mas@EDMAS7

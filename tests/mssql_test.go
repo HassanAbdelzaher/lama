@@ -10,12 +10,12 @@ import (
 
 func _TestMssqlConnect(t *testing.T) {
 	var err error
-	lama, err = lama2.Connect("sqlserver", "server=masgate.com;database=lama_test;user id=sa;password=hcs@mas;log=63")
+	DB, err = lama2.Connect("sqlserver", "server=localhost:3300;database=lama;user id=sa;password=passw0$d;log=63")
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-	lama.Debug = true
+	DB.Debug = true
 	rand.Seed(time.Now().UnixNano())
 }
 
